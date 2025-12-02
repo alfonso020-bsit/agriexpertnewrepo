@@ -28,7 +28,7 @@ import subprocess
 from urllib.parse import urlparse
 import numpy as np
 from PIL import Image
-import tensorflow as tf
+# import tensorflow as tf
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
 import io
