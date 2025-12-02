@@ -18,7 +18,7 @@ from django.core.mail import send_mail
 from django.shortcuts import render, HttpResponse
 import os
 import requests
-import pdfkit
+# import pdfkit
 import pypandoc
 from django.http import HttpResponse
 from django.conf import settings
@@ -48,9 +48,9 @@ SUPABASE_KEY = settings.SUPABASE_KEY
 SUPABASE_BUCKET = settings.SUPABASE_BUCKET
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-PDFKIT_CONFIG = pdfkit.configuration(
-    wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
-)
+# PDFKIT_CONFIG = pdfkit.configuration(
+#     wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
+# )
 def upload_to_supabase(file, folder):
     """Uploads a file to Supabase Storage and returns the public URL."""
     if not file:
