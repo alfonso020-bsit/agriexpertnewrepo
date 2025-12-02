@@ -1,0 +1,251 @@
+{% extends 'adminako/base_admin.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Main Content Area - Wider -->
+        <div class="col-lg-9">
+            <!-- Back button -->
+            <a href="{% url 'admin_experts' %}" class="btn btn-outline-secondary mb-3">
+                <i class="fas fa-arrow-left"></i> Back to Expert Management
+            </a>
+            
+            <!-- Post Details Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white">
+                    <div class="d-flex align-items-center">
+                        <img src="{{ post.expert.profile_picture }}" class="rounded-circle me-3" alt="Expert Profile" style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #28a745;">
+                        <div class="flex-grow-1">
+                            <h5 class="mb-0">{{ post.expert.first_name }} {{ post.expert.last_name }}</h5>
+                            <small class="text-muted">{{ post.created_at|date:"F d, Y h:i A" }}</small>
+                        </div>
+                        <!-- Admin Actions -->
+                        <div class="ms-auto">
+                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deletePostModal">
+                                <i class="fas fa-trash"></i> Remove Post
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <h4 class="card-title fw-bold mb-3">{{ post.title }}</h4>
+                    <p class="card-text fs-5">{{ post.caption|linebreaksbr }}</p>
+                    
+                    <!-- Post Images -->
+                    {% if images %}
+                        <div class="post-images mb-4">
+                            {% if images|length == 1 %}
+                                <div class="text-center">
+                                    <img src="{{ images.0.image_url }}" class="img-fluid rounded" alt="Post Image" style="max-height: 600px;">
+                                </div>
+                            {% else %}
+                                <div class="row g-3">
+                                    {% for image in images %}
+                                        <div class="col-md-6">
+                                            <img src="{{ image.image_url }}" class="img-fluid rounded w-100" alt="Post Image" style="height: 300px; object-fit: cover;">
+                                            {% if image.caption %}
+                                                <p class="text-muted mt-2">{{ image.caption }}</p>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Post Stats -->
+                    <div class="d-flex align-items-center text-muted mb-3">
+                        <span class="me-3"><i class="far fa-thumbs-up"></i> {{ post.get_upvotes_count }} Upvotes</span>
+                        <span class="me-3"><i class="far fa-comment"></i> {{ post.get_comments.count }} Comments</span>
+                        <span><i class="far fa-eye"></i> {{ post.views|default:"0" }} Views</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Comments Section -->
+            <div class="card shadow">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Comments ({{ post.get_comments.count }})</h5>
+                    <span class="badge bg-success">{{ solution_comment|yesno:"Has Solution,No Solution" }}</span>
+                </div>
+                <div class="card-body">
+                    <!-- Solution Comment -->
+                    {% if solution_comment %}
+                        <div class="solution-comment mb-4 p-3 border border-success border-2 bg-light rounded">
+                            <div class="d-flex">
+                                <img src="{{ solution_comment.expert.profile_picture }}" class="rounded-circle me-3" alt="Expert Profile" style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #28a745;">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">{{ solution_comment.expert.first_name }} {{ solution_comment.expert.last_name }}</h6>
+                                            <small class="text-muted">@{{ solution_comment.expert.username }}</small>
+                                            <span class="badge bg-success ms-2">✓ Marked as Solution</span>
+                                        </div>
+                                        <small class="text-muted">{{ solution_comment.created_at|date:"M d, Y h:i A" }}</small>
+                                    </div>
+                                    <p class="mt-2 mb-0 fs-6">{{ solution_comment.content|linebreaksbr }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Regular Comments -->
+                    {% if other_comments %}
+                        <h6 class="text-muted mb-3">All Comments</h6>
+                        {% for comment in other_comments %}
+                            <div class="comment mb-3 p-3 border-start border-secondary border-3 bg-light rounded">
+                                <div class="d-flex">
+                                    <img src="{{ comment.expert.profile_picture }}" class="rounded-circle me-3" alt="Expert Profile" style="width: 45px; height: 45px; object-fit: cover;">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ comment.expert.first_name }} {{ comment.expert.last_name }}</strong>
+                                                <small class="text-muted ms-2">@{{ comment.expert.username }}</small>
+                                            </div>
+                                            <small class="text-muted">{{ comment.created_at|date:"M d, Y h:i A" }}</small>
+                                        </div>
+                                        <p class="mt-2 mb-0">{{ comment.content|linebreaksbr }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        {% if not solution_comment %}
+                            <div class="text-center p-4">
+                                <i class="far fa-comment-dots fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No comments on this post yet.</p>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar with Expert Info and Analytics -->
+        <div class="col-lg-3">
+            <!-- Expert Profile Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Expert Information</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ post.expert.profile_picture }}" class="rounded-circle mb-3" alt="Expert Profile" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #28a745;">
+                    <h5>{{ post.expert.first_name }} {{ post.expert.last_name }}</h5>
+                    <p class="text-muted">@{{ post.expert.username }}</p>
+                    
+                    <div class="text-start">
+                        <p><strong>Email:</strong> {{ post.expert.email }}</p>
+                        <p><strong>Phone:</strong> {{ post.expert.phone_number }}</p>
+                        <p><strong>Barangay:</strong> {{ post.expert.barangay }}</p>
+                        <p><strong>Position:</strong> {{ post.expert.position|default:"Not specified" }}</p>
+                        <p><strong>License:</strong> {{ post.expert.license_number }}</p>
+                        <p>
+                            <strong>Status:</strong> 
+                            <span class="badge {% if post.expert.status == 'Approved' %}bg-success{% elif post.expert.status == 'Pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ post.expert.status }}
+                            </span>
+                        </p>
+                    </div>
+                    <!-- To this: -->
+                    <a href="{% url 'view_expert' post.expert.id %}" class="btn btn-outline-primary btn-sm mt-2">
+                        <i class="fas fa-user-circle me-1"></i> View Full Profile
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Post Analytics Card -->
+            <div class="card shadow">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Post Analytics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Upvotes</span>
+                            <strong>{{ post.get_upvotes_count }}</strong>
+                        </div>
+                        <div class="progress mt-1" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio post.get_upvotes_count post.get_upvotes_count|add:post.get_comments.count 100 %}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Comments</span>
+                            <strong>{{ post.get_comments.count }}</strong>
+                        </div>
+                        <div class="progress mt-1" style="height: 8px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: {% widthratio post.get_comments.count post.get_upvotes_count|add:post.get_comments.count 100 %}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Engagement Rate</span>
+                            <strong>
+                                {% with total_engagement=post.get_upvotes_count|add:post.get_comments.count %}
+                                    {% if total_engagement > 0 %}
+                                        {{ total_engagement }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                {% endwith %}
+                            </strong>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Post Age</span>
+                            <strong>{{ post.created_at|timesince }}</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between">
+                            <span>Solution Provided</span>
+                            <strong>{{ solution_comment|yesno:"Yes,No" }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Post Modal -->
+<div class="modal fade" id="deletePostModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Post Removal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove this post? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="#">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Remove Post</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .post-images img {
+        max-height: 600px;
+        object-fit: contain;
+    }
+    .card {
+        border: none;
+    }
+    .card-header {
+        border-bottom: 1px solid rgba(0,0,0,.125);
+    }
+</style>
+{% endblock %}

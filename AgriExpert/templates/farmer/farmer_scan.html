@@ -1,0 +1,2629 @@
+{% extends 'farmer/base_farmer.html' %}
+{% block content %}
+<style>
+:root {
+    --primary-green: #2d6a4f;
+    --primary-green-light: #40916c;
+    --primary-green-lighter: #52b788;
+    --primary-green-dark: #1b4332;
+    --bg-light: #f8f9fa;
+    --bg-green-light: #d8f3dc;
+    --shadow: 0 2px 4px rgba(0,0,0,0.08);
+    --shadow-hover: 0 4px 8px rgba(0,0,0,0.12);
+}
+
+.scan-header {
+    background: var(--primary-green);
+    color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.scan-header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+
+.scan-header p {
+    margin: 0.5rem 0 0 0;
+    opacity: 0.9;
+}
+
+.detection-tabs {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+
+.nav-pills .nav-link {
+    border-radius: 6px;
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    color: #495057;
+}
+
+.nav-pills .nav-link.active {
+    background: var(--primary-green);
+    color: white;
+}
+
+.nav-pills .nav-link:hover:not(.active) {
+    background: var(--bg-green-light);
+}
+
+.detection-mode-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    height: 100%;
+    transition: box-shadow 0.2s ease;
+}
+
+.detection-mode-card:hover {
+    box-shadow: var(--shadow-hover);
+}
+
+.mode-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--primary-green);
+}
+
+.mode-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #212529;
+}
+
+.btn-scan {
+    border-radius: 6px;
+    padding: 0.65rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary-green {
+    background: var(--primary-green);
+    border-color: var(--primary-green);
+    color: white;
+}
+
+.btn-primary-green:hover {
+    background: var(--primary-green-dark);
+    border-color: var(--primary-green-dark);
+}
+
+.btn-outline-green {
+    border: 2px solid var(--primary-green);
+    color: var(--primary-green);
+    background: white;
+}
+
+.btn-outline-green:hover {
+    background: var(--primary-green);
+    color: white;
+}
+
+.video-preview {
+    border-radius: 6px;
+    max-height: 300px;
+    width: 100%;
+    object-fit: cover;
+    border: 2px solid #e9ecef;
+}
+
+.result-display {
+    background: var(--bg-green-light);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 1rem;
+    border: 1px solid var(--primary-green-lighter);
+}
+
+.confidence-badge {
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+}
+
+.modal-content {
+    border-radius: 8px;
+    border: none;
+}
+
+.modal-header {
+    background: var(--primary-green);
+    color: white;
+    border-radius: 8px 8px 0 0;
+}
+
+.history-card {
+    transition: transform 0.2s ease;
+    border: 1px solid #e9ecef;
+}
+
+.history-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.result-modal-header {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    padding: 1.5rem;
+}
+
+.result-image-container {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin-bottom: 2rem;
+}
+
+.result-image-container img {
+    width: 100%;
+    max-height: 350px;
+    object-fit: contain;
+    background: #f8f9fa;
+}
+
+.detected-class-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 2px solid var(--primary-green-lighter);
+}
+
+.detected-class-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--primary-green-dark);
+    margin-bottom: 0.5rem;
+}
+
+.detected-class-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-green-dark);
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+}
+
+.confidence-section {
+    margin-top: 1.5rem;
+}
+
+.confidence-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6c757d;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.confidence-bar-container {
+    background: #e9ecef;
+    border-radius: 50px;
+    height: 32px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.confidence-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 1rem;
+    transition: width 0.6s ease;
+    box-shadow: 0 2px 4px rgba(45, 106, 79, 0.3);
+}
+
+.confidence-percentage {
+    color: white;
+    font-weight: 700;
+    font-size: 0.875rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.info-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e9ecef;
+    box-shadow: var(--shadow);
+}
+
+.info-section-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--primary-green-dark);
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--primary-green-lighter);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-item {
+    margin-bottom: 1.25rem;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
+}
+
+.info-item-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--primary-green);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.info-item-content {
+    font-size: 0.95rem;
+    color: #495057;
+    line-height: 1.6;
+    text-align: justify;
+}
+
+.save-result-section {
+    background: var(--bg-green-light);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.btn-save-result {
+    background: var(--primary-green);
+    border: none;
+    color: white;
+    padding: 0.875rem 2.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 8px rgba(45, 106, 79, 0.3);
+}
+
+.btn-save-result:hover {
+    background: var(--primary-green-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(45, 106, 79, 0.4);
+}
+
+.no-info-message {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Info Button Styles */
+.btn-info-custom {
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: white;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.btn-info-custom:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: white;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.btn-info-custom:active {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.35);
+}
+
+/* Info Modal Styles */
+.info-modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.info-modal-header {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    padding: 1.5rem;
+}
+
+.info-modal-body {
+    padding: 2rem;
+    background: #f8f9fa;
+}
+
+.info-item-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--primary-green);
+    box-shadow: var(--shadow);
+}
+
+.info-item-title {
+    font-weight: 700;
+    color: var(--primary-green-dark);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-item-description {
+    color: #495057;
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
+.info-highlight {
+    background: var(--bg-green-light);
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--primary-green-lighter);
+    margin-top: 1rem;
+}
+
+.info-highlight strong {
+    color: var(--primary-green-dark);
+}
+
+/* Save Confirmation Modal Styles */
+.save-confirmation-modal .modal-content {
+    border-radius: 16px;
+    overflow: hidden;
+    border: none;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.save-confirmation-modal .modal-header {
+    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
+    color: white;
+    border-bottom: none;
+    padding: 2rem;
+    text-align: center;
+}
+
+.save-confirmation-modal .modal-body {
+    padding: 3rem 2rem;
+    text-align: center;
+    background: #f8f9fa;
+}
+
+.save-confirmation-modal .success-icon {
+    font-size: 4rem;
+    color: #2d6a4f;
+    margin-bottom: 1.5rem;
+    animation: bounceIn 0.6s ease;
+}
+
+.save-confirmation-modal .confirmation-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #2d6a4f;
+    margin-bottom: 1rem;
+}
+
+.save-confirmation-modal .confirmation-message {
+    font-size: 1.1rem;
+    color: #495057;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.save-confirmation-modal .details-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    border: 2px solid #e9ecef;
+    text-align: left;
+}
+
+.save-confirmation-modal .detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.save-confirmation-modal .detail-item:last-child {
+    border-bottom: none;
+}
+
+.save-confirmation-modal .detail-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.save-confirmation-modal .detail-value {
+    font-weight: 700;
+    color: #2d6a4f;
+}
+
+.save-confirmation-modal .location-badge {
+    background: #d8f3dc;
+    color: #1b4332;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.save-confirmation-modal .modal-footer {
+    border-top: none;
+    padding: 1.5rem 2rem 2rem;
+    background: #f8f9fa;
+    justify-content: center;
+}
+
+.save-confirmation-modal .btn-confirm {
+    background: #2d6a4f;
+    border: none;
+    color: white;
+    padding: 0.875rem 2.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    min-width: 150px;
+}
+
+.save-confirmation-modal .btn-confirm:hover {
+    background: #1b4332;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(45, 106, 79, 0.3);
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+@media (max-width: 768px) {
+    .scan-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .nav-pills .nav-link {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .detected-class-value {
+        font-size: 1.75rem;
+    }
+    
+    .confidence-bar-container {
+        height: 28px;
+    }
+    
+    .info-section-title {
+        font-size: 1rem;
+    }
+    
+    .btn-info-custom {
+        padding: 0.65rem 0.85rem;
+        font-size: 0.9rem;
+    }
+    
+    .info-modal-body {
+        padding: 1.5rem;
+    }
+    
+    .info-item-card {
+        padding: 1rem;
+    }
+    
+    .save-confirmation-modal .modal-body {
+        padding: 2rem 1rem;
+    }
+    
+    .save-confirmation-modal .confirmation-title {
+        font-size: 1.5rem;
+    }
+    
+    .save-confirmation-modal .success-icon {
+        font-size: 3rem;
+    }
+}
+
+.location-status {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.location-success {
+    background: var(--bg-green-light);
+    border: 1px solid var(--primary-green-lighter);
+    color: var(--primary-green-dark);
+}
+
+.location-error {
+    background: #ffe6e6;
+    border: 1px solid #ffcccc;
+    color: #cc0000;
+}
+
+.location-loading {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+/* Refresh Button Styles */
+.btn-outline-light {
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    color: white;
+    background: transparent;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    backdrop-filter: blur(10px);
+}
+
+.btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: white;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.btn-outline-light:active {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Refresh icon animation */
+.btn-outline-light .bi-arrow-clockwise {
+    transition: transform 0.3s ease;
+    font-size: 1.2rem;
+}
+
+.btn-outline-light:hover .bi-arrow-clockwise {
+    transform: rotate(45deg);
+}
+
+/* Spinning animation when refreshing */
+.btn-refresh-spin {
+    pointer-events: none;
+}
+
+.btn-refresh-spin .bi-arrow-clockwise {
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Tooltip for better UX */
+#refreshPageBtn {
+    position: relative;
+}
+
+#refreshPageBtn::after {
+    content: "I-refresh ang pahina (F5)";
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+#refreshPageBtn:hover::after {
+    opacity: 1;
+    visibility: visible;
+    bottom: -45px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .btn-outline-light {
+        padding: 0.65rem 0.85rem;
+    }
+    
+    .btn-outline-light .bi-arrow-clockwise {
+        font-size: 1.1rem;
+    }
+    
+    #refreshPageBtn::after {
+        display: none; /* Hide tooltip on mobile */
+    }
+    
+    .scan-header .d-flex.gap-2 {
+        gap: 0.5rem !important;
+    }
+}
+</style>
+
+<div class="container mt-4">
+    <!-- Header section remains the same -->
+    <div class="scan-header d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Pagsusuri ng Sakit at Peste</h1>
+            <p class="mb-0">Tuklasin ang kalusugan ng iyong pananim</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button id="infoBtn" class="btn btn-info-custom btn-lg" title="Impormasyon tungkol sa mga mode ng detection">
+                <i class="bi bi-info-circle me-1"></i>
+                <span class="d-none d-md-inline">Impormasyon</span>
+            </button>
+            <button id="refreshPageBtn" class="btn btn-outline-light btn-lg" title="I-refresh ang pahina">
+                <i class="bi bi-arrow-clockwise me-1"></i>
+                <span class="d-none d-md-inline">I-refresh</span>
+            </button>
+            <button id="viewHistoryBtn" class="btn btn-light btn-lg">
+                <i class="bi bi-clock-history"></i> Kasaysayan
+            </button>
+        </div>
+    </div>
+
+    <!-- Rest of your existing content remains the same -->
+    <div class="detection-tabs">
+        <ul class="nav nav-pills justify-content-center mb-0" id="detectionTypeTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="disease-tab" data-bs-toggle="pill" data-bs-target="#disease-panel" type="button" role="tab">
+                    Sakit (Disease)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pest-tab" data-bs-toggle="pill" data-bs-target="#pest-panel" type="button" role="tab">
+                    Peste (Pest)
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <div class="tab-content" id="detectionTypeContent">
+        <!-- Disease and Pest panels remain exactly the same -->
+        <div class="tab-pane fade show active" id="disease-panel" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="detection-mode-card text-center">
+                        <div class="mode-icon"><i class="bi bi-upload"></i></div>
+                        <h3 class="mode-title">Mag-upload ng Larawan</h3>
+                        <form id="diseaseUploadForm" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="file" name="disease_image" id="diseaseFileInput" class="form-control mb-3" accept="image/*" required>
+                            <button type="submit" class="btn btn-primary-green btn-scan w-100">
+                                Suriin ang Sakit
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="detection-mode-card text-center">
+                        <div class="mode-icon"><i class="bi bi-camera"></i></div>
+                        <h3 class="mode-title">Gumamit ng Camera</h3>
+                        <video id="diseaseCameraVideo" class="video-preview d-none mb-3" autoplay></video>
+                        <canvas id="diseaseCameraCanvas" class="d-none"></canvas>
+                        <img id="diseaseCapturedPreview" class="video-preview d-none mb-3" />
+                        <button type="button" class="btn btn-outline-green btn-scan w-100 mb-2" id="startDiseaseCameraBtn">
+                            Buksan ang Camera
+                        </button>
+                        <button type="button" class="btn btn-primary-green btn-scan w-100 d-none" id="captureDiseaseBtnCamera">
+                            Kunan ang Larawan
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="detection-mode-card">
+                        <div class="text-center">
+                            <div class="mode-icon"><i class="bi bi-camera-video"></i></div>
+                            <h3 class="mode-title">Real-Time Detection</h3>
+                        </div>
+                        <video id="diseaseRealtimeVideo" class="video-preview d-none mb-3" autoplay muted></video>
+                        <canvas id="diseaseRealtimeCanvas" class="d-none"></canvas>
+                        <div class="text-center">
+                            <button id="startDiseaseRealtimeBtn" class="btn btn-primary-green btn-scan w-100 mb-2">
+                                Simulan
+                            </button>
+                            <button id="stopDiseaseRealtimeBtn" class="btn btn-outline-secondary btn-scan w-100 d-none">
+                                Ihinto
+                            </button>
+                        </div>
+                        <div class="result-display mt-3">
+                            <p class="fw-bold mb-2" id="diseaseRealtimeResult">Naghihintay ng resulta...</p>
+                            <small class="text-muted" id="diseaseRealtimeInfo">Magsisimula ang pagsusuri kapag binuksan ang camera</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pest-panel" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="detection-mode-card text-center">
+                        <div class="mode-icon"><i class="bi bi-upload"></i></div>
+                        <h3 class="mode-title">Mag-upload ng Larawan</h3>
+                        <form id="pestUploadForm" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="file" name="pest_image" id="pestFileInput" class="form-control mb-3" accept="image/*" required>
+                            <button type="submit" class="btn btn-primary-green btn-scan w-100">
+                                Suriin ang Peste
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="detection-mode-card text-center">
+                        <div class="mode-icon"><i class="bi bi-camera"></i></div>
+                        <h3 class="mode-title">Gumamit ng Camera</h3>
+                        <video id="pestCameraVideo" class="video-preview d-none mb-3" autoplay></video>
+                        <canvas id="pestCameraCanvas" class="d-none"></canvas>
+                        <img id="pestCapturedPreview" class="video-preview d-none mb-3" />
+                        <button type="button" class="btn btn-outline-green btn-scan w-100 mb-2" id="startPestCameraBtn">
+                            Buksan ang Camera
+                        </button>
+                        <button type="button" class="btn btn-primary-green btn-scan w-100 d-none" id="capturePestBtn">
+                            Kunan ang Larawan
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="detection-mode-card">
+                        <div class="text-center">
+                            <div class="mode-icon"><i class="bi bi-camera-video"></i></div>
+                            <h3 class="mode-title">Real-Time Detection</h3>
+                        </div>
+                        <video id="pestRealtimeVideo" class="video-preview d-none mb-3" autoplay muted></video>
+                        <canvas id="pestRealtimeCanvas" class="d-none"></canvas>
+                        <div class="text-center">
+                            <button id="startPestRealtimeBtn" class="btn btn-primary-green btn-scan w-100 mb-2">
+                                Simulan
+                            </button>
+                            <button id="stopPestRealtimeBtn" class="btn btn-outline-secondary btn-scan w-100 d-none">
+                                Ihinto
+                            </button>
+                        </div>
+                        <div class="result-display mt-3">
+                            <p class="fw-bold mb-2" id="pestRealtimeResult">Naghihintay ng resulta...</p>
+                            <small class="text-muted" id="pestRealtimeInfo">Magsisimula ang pagsusuri kapag binuksan ang camera</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Confirmation Modal -->
+<div class="modal fade save-confirmation-modal" id="saveConfirmationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title w-100 text-center">
+                    <i class="bi bi-check-circle-fill me-2"></i>Matagumpay na Na-save!
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="success-icon">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <h3 class="confirmation-title">Resulta ay Na-save</h3>
+                <p class="confirmation-message" id="confirmationMessage">
+                    Ang iyong pagsusuri ay matagumpay na na-save sa sistema.
+                </p>
+                
+                <div class="details-card fade-in">
+                    <div class="detail-item">
+                        <span class="detail-label">Uri ng Pagsusuri:</span>
+                        <span class="detail-value" id="savedDetectionType">Sakit</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Natukoy na Klasipikasyon:</span>
+                        <span class="detail-value" id="savedPrediction">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Kumpiyansa:</span>
+                        <span class="detail-value" id="savedConfidence">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Lokasyon:</span>
+                        <span class="location-badge" id="savedLocationStatus">
+                            <i class="bi bi-geo-alt-fill me-1"></i>Kasama ang Lokasyon
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-confirm" data-bs-dismiss="modal">
+                    <i class="bi bi-check-lg me-2"></i>Sige
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal fade save-confirmation-modal" id="saveErrorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger">
+                <h5 class="modal-title w-100 text-center text-white">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>May Problema
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="success-icon text-danger">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <h3 class="confirmation-title text-danger">Hindi Na-save</h3>
+                <p class="confirmation-message" id="errorMessage">
+                    May naging problema sa pagsave ng iyong resulta.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Subukan Muli
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Info Modal -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content info-modal-content">
+            <div class="modal-header info-modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-info-circle-fill me-2"></i>Impormasyon sa mga Mode ng Pagsusuri
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body info-modal-body">
+                <div class="info-item-card">
+                    <div class="info-item-title">
+                        <i class="bi bi-upload text-primary"></i>
+                        Mag-upload ng Larawan
+                    </div>
+                    <div class="info-item-description">
+                        Pumili ng umiiral na larawan mula sa iyong device para sa pagsusuri. 
+                        Ang paraang ito ay mainam kung mayroon ka nang mga larawan ng iyong mga pananim na nais suriin.
+                    </div>
+                </div>
+
+                <div class="info-item-card">
+                    <div class="info-item-title">
+                        <i class="bi bi-camera text-success"></i>
+                        Gumamit ng Camera
+                    </div>
+                    <div class="info-item-description">
+                        Kumuha ng bagong larawan gamit ang camera ng iyong device. 
+                        Matapos kumuha ng larawan, maaari itong i-save kasama ang mga resulta ng pagsusuri.
+                    </div>
+                </div>
+
+                <div class="info-item-card">
+                    <div class="info-item-title">
+                        <i class="bi bi-camera-video text-warning"></i>
+                        Real-Time Detection
+                    </div>
+                    <div class="info-item-description">
+                        Gamitin ang real-time na pagsusuri para sa mabilisang pag-scan ng iyong mga pananim. 
+                        Ang mode na ito ay mainam para sa mabilisang pagtukoy ngunit hindi nag-sasave ng mga larawan.
+                    </div>
+                </div>
+
+                <div class="info-highlight">
+                    <strong>Mahalagang Paalala:</strong><br>
+                    • Parehong <strong>pag-upload ng larawan</strong> at <strong>paggamit ng camera</strong> ay nag-sasave ng mga resulta kasama ang larawan.<br>
+                    • Ang <strong>real-time detection</strong> ay ginagamit bilang shortcut para sa mabilisang pagsusuri.<br>
+                    • Ang bawat pagsusuri ay awtomatikong kumukuha ng lokasyon ng magsasaka para sa mas mahusay na pag-track at monitoring.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary-green" data-bs-dismiss="modal">
+                    <i class="bi bi-check-lg me-1"></i>Unawain ko
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rest of your existing modals (resultModal, historyModal, locationModal) remain the same -->
+<div class="modal fade" id="resultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header result-modal-header">
+                <h5 class="modal-title" id="resultModalTitle">
+                    <i class="bi bi-check-circle-fill me-2"></i>Resulta ng Pagsusuri
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Image Section -->
+                <div class="result-image-container">
+                    <img id="resultImage" alt="Scanned Image" />
+                </div>
+
+                <!-- Detected Class Section -->
+                <div class="detected-class-section">
+                    <div class="detected-class-label">
+                        <i class="bi bi-bug-fill"></i> Natukoy na Sakit/Peste
+                    </div>
+                    <div class="detected-class-value" id="resultPrediction">
+                        <!-- Predicted class will be inserted here -->
+                    </div>
+
+                    <!-- Confidence Section -->
+                    <div class="confidence-section">
+                        <div class="confidence-label">
+                            <i class="bi bi-speedometer2"></i>
+                            Antas ng Katiyakan (Confidence Level)
+                        </div>
+                        <div class="confidence-bar-container">
+                            <div class="confidence-bar" id="confidenceBar" style="width: 0%;">
+                                <span class="confidence-percentage" id="confidencePercentage">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Library Information Section -->
+                <div id="resultLibraryInfo">
+                    <!-- Library data will be inserted here -->
+                </div>
+
+                <!-- Save Button Section -->
+                <div class="save-result-section">
+                    <button id="saveResultBtn" class="btn btn-save-result">
+                        <i class="bi bi-save me-2"></i>I-save ang Resulta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Kasaysayan ng Pagsusuri</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label">Simula</label>
+                        <input type="date" id="filterStartDate" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Hanggang</label>
+                        <input type="date" id="filterEndDate" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Uri</label>
+                        <select id="filterClassification" class="form-select">
+                            <option value="">Lahat</option>
+                            <option value="sakit">Sakit</option>
+                            <option value="peste">Peste</option>
+                            <option value="unknown">Unknown</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button id="applyFiltersBtn" class="btn btn-primary-green w-100">
+                            <i class="bi bi-funnel"></i> I-apply
+                        </button>
+                    </div>
+                </div>
+
+                <div id="historyCards" class="row g-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Location Permission Modal -->
+<div class="modal fade" id="locationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="bi bi-geo-alt-fill me-2"></i>Kinakailangan ang Lokasyon
+                </h5>
+            </div>
+            <div class="modal-body">
+                <p>Para sa mas mahusay na pagmamapa ng mga sakit at peste, kailangan namin ang iyong lokasyon.</p>
+                <p class="fw-bold">Paki-click ang "Payagan" kapag hiniling ng iyong browser.</p>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Ang iyong lokasyon ay magagamit lamang para sa layunin ng pagsusuri at hindi ibabahagi.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="enableLocationBtn">
+                    <i class="bi bi-check-lg"></i> Unawain ko
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+ // Function to show save success modal
+function showSaveSuccess(detectionType, prediction, confidence, hasLocation) {
+    // Update modal content
+    document.getElementById('savedDetectionType').textContent = 
+        detectionType === 'disease' ? 'Sakit' : 'Peste';
+    document.getElementById('savedPrediction').textContent = prediction || 'Unknown';
+    document.getElementById('savedConfidence').textContent = 
+        confidence ? `${parseFloat(confidence).toFixed(1)}%` : '0%';
+    
+    const locationBadge = document.getElementById('savedLocationStatus');
+    if (hasLocation) {
+        locationBadge.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i>Kasama ang Lokasyon';
+        locationBadge.className = 'location-badge';
+    } else {
+        locationBadge.innerHTML = '<i class="bi bi-geo-alt me-1"></i>Walang Lokasyon';
+        locationBadge.className = 'location-badge bg-secondary';
+    }
+    
+    // Show the modal
+    const successModal = new bootstrap.Modal(document.getElementById('saveConfirmationModal'));
+    successModal.show();
+}
+
+// Function to show save error modal
+function showSaveError(errorMessage) {
+    document.getElementById('errorMessage').textContent = 
+        `May naging problema sa pagsave ng iyong resulta: ${errorMessage}`;
+    
+    const errorModal = new bootstrap.Modal(document.getElementById('saveErrorModal'));
+    errorModal.show();
+}
+
+// Add this to your existing JavaScript
+document.getElementById('infoBtn').addEventListener('click', function() {
+    const infoModal = new bootstrap.Modal(document.getElementById('infoModal'));
+    infoModal.show();
+});
+
+// Rest of your existing JavaScript remains the same...
+let currentDetectionType = 'disease';
+let currentImageFile = null;
+let currentPredictionData = null;
+let realtimeInterval = null;
+let cameraStream = null;
+
+// NEW: Location variables
+let currentLocation = null;
+let locationError = null;
+let isLocationEnabled = false;
+
+const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+// NEW: Location Functions
+function requestLocationPermission() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error('Ang iyong browser ay hindi sumusuporta sa geolocation'));
+            return;
+        }
+
+        const locationModal = new bootstrap.Modal(document.getElementById('locationModal'));
+        locationModal.show();
+
+        document.getElementById('enableLocationBtn').onclick = async () => {
+            locationModal.hide();
+            
+            try {
+                const position = await getCurrentLocation();
+                resolve(position);
+            } catch (error) {
+                reject(error);
+            }
+        };
+    });
+}
+
+function getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                currentLocation = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy,
+                    timestamp: new Date(position.timestamp)
+                };
+                isLocationEnabled = true;
+                updateLocationStatus('success', 'Lokasyon ay matagumpay na nakuha!');
+                resolve(currentLocation);
+            },
+            (error) => {
+                let errorMessage = 'Hindi makuha ang lokasyon: ';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage += 'Ikaw ay hindi nagbigay ng pahintulot para sa lokasyon.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage += 'Ang impormasyon ng lokasyon ay hindi available.';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage += 'Ang request para sa lokasyon ay na-timeout.';
+                        break;
+                    default:
+                        errorMessage += 'Isang hindi kilalang error ang nangyari.';
+                        break;
+                }
+                locationError = errorMessage;
+                updateLocationStatus('error', errorMessage);
+                reject(new Error(errorMessage));
+            },
+            options
+        );
+    });
+}
+
+function updateLocationStatus(type, message) {
+    // You can add a location status indicator in your UI if needed
+    console.log(`Location Status [${type}]: ${message}`);
+    
+    // Optional: Add a small status indicator in your header
+    let statusElement = document.getElementById('locationStatus');
+    if (!statusElement) {
+        statusElement = document.createElement('div');
+        statusElement.id = 'locationStatus';
+        statusElement.className = 'location-status';
+        document.querySelector('.scan-header').appendChild(statusElement);
+    }
+    
+    statusElement.className = `location-status location-${type}`;
+    statusElement.innerHTML = `<i class="bi bi-geo-alt-${type === 'success' ? 'fill' : 'exclamation-triangle'}"></i> ${message}`;
+}
+
+document.getElementById('diseaseUploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('diseaseFileInput');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Pumili ng larawan');
+        return;
+    }
+    
+    await predictDisease(file);
+});
+
+document.getElementById('startDiseaseCameraBtn').addEventListener('click', async function() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById('diseaseCameraVideo');
+        video.srcObject = stream;
+        cameraStream = stream;
+        
+        video.classList.remove('d-none');
+        this.classList.add('d-none');
+        document.getElementById('captureDiseaseBtnCamera').classList.remove('d-none');
+    } catch (err) {
+        alert('Hindi ma-access ang camera: ' + err.message);
+    }
+});
+
+document.getElementById('captureDiseaseBtnCamera').addEventListener('click', function() {
+    const video = document.getElementById('diseaseCameraVideo');
+    const canvas = document.getElementById('diseaseCameraCanvas');
+    const preview = document.getElementById('diseaseCapturedPreview');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    
+    canvas.toBlob(async (blob) => {
+        const file = new File([blob], 'captured_disease.jpg', { type: 'image/jpeg' });
+        preview.src = URL.createObjectURL(blob);
+        preview.classList.remove('d-none');
+        
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+        video.classList.add('d-none');
+        document.getElementById('captureDiseaseBtnCamera').classList.add('d-none');
+        document.getElementById('startDiseaseCameraBtn').classList.remove('d-none');
+        
+        await predictDisease(file);
+    }, 'image/jpeg');
+});
+
+document.getElementById('startDiseaseRealtimeBtn').addEventListener('click', async function() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById('diseaseRealtimeVideo');
+        video.srcObject = stream;
+        cameraStream = stream;
+        
+        video.classList.remove('d-none');
+        this.classList.add('d-none');
+        document.getElementById('stopDiseaseRealtimeBtn').classList.remove('d-none');
+        
+        realtimeInterval = setInterval(() => captureAndPredictDisease(), 2000);
+    } catch (err) {
+        alert('Hindi ma-access ang camera: ' + err.message);
+    }
+});
+
+document.getElementById('stopDiseaseRealtimeBtn').addEventListener('click', function() {
+    stopRealtimeDetection('disease');
+});
+
+async function captureAndPredictDisease() {
+    const video = document.getElementById('diseaseRealtimeVideo');
+    const canvas = document.getElementById('diseaseRealtimeCanvas');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    
+    canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append('disease_image', blob, 'frame.jpg');
+        
+        try {
+            const response = await fetch('/predict/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            
+            const data = await response.json();
+            
+            if (data.predicted_class) {
+                document.getElementById('diseaseRealtimeResult').innerHTML = 
+                    `<strong>${data.predicted_class}</strong><br>Confidence: ${data.confidence}%`;
+                document.getElementById('diseaseRealtimeInfo').textContent = 
+                    data.library_data?.deskripsyon?.substring(0, 100) + '...' || 'Walang karagdagang impormasyon';
+            }
+        } catch (err) {
+            console.error('Real-time prediction error:', err);
+        }
+    }, 'image/jpeg');
+}
+
+document.getElementById('pestUploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('pestFileInput');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Pumili ng larawan');
+        return;
+    }
+    
+    await predictPest(file);
+});
+
+document.getElementById('startPestCameraBtn').addEventListener('click', async function() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById('pestCameraVideo');
+        video.srcObject = stream;
+        cameraStream = stream;
+        
+        video.classList.remove('d-none');
+        this.classList.add('d-none');
+        document.getElementById('capturePestBtn').classList.remove('d-none');
+    } catch (err) {
+        alert('Hindi ma-access ang camera: ' + err.message);
+    }
+});
+
+document.getElementById('capturePestBtn').addEventListener('click', function() {
+    const video = document.getElementById('pestCameraVideo');
+    const canvas = document.getElementById('pestCameraCanvas');
+    const preview = document.getElementById('pestCapturedPreview');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    
+    canvas.toBlob(async (blob) => {
+        const file = new File([blob], 'captured_pest.jpg', { type: 'image/jpeg' });
+        preview.src = URL.createObjectURL(blob);
+        preview.classList.remove('d-none');
+        
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+        video.classList.add('d-none');
+        document.getElementById('capturePestBtn').classList.add('d-none');
+        document.getElementById('startPestCameraBtn').classList.remove('d-none');
+        
+        await predictPest(file);
+    }, 'image/jpeg');
+});
+
+document.getElementById('startPestRealtimeBtn').addEventListener('click', async function() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById('pestRealtimeVideo');
+        video.srcObject = stream;
+        cameraStream = stream;
+        
+        video.classList.remove('d-none');
+        this.classList.add('d-none');
+        document.getElementById('stopPestRealtimeBtn').classList.remove('d-none');
+        
+        realtimeInterval = setInterval(() => captureAndPredictPest(), 2000);
+    } catch (err) {
+        alert('Hindi ma-access ang camera: ' + err.message);
+    }
+});
+
+document.getElementById('stopPestRealtimeBtn').addEventListener('click', function() {
+    stopRealtimeDetection('pest');
+});
+
+async function captureAndPredictPest() {
+    const video = document.getElementById('pestRealtimeVideo');
+    const canvas = document.getElementById('pestRealtimeCanvas');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    
+    canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append('pest_image', blob, 'frame.jpg');
+        
+        try {
+            const response = await fetch('/predict_pest/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            
+            const data = await response.json();
+            
+            if (data.predicted_class) {
+                document.getElementById('pestRealtimeResult').innerHTML = 
+                    `<strong>${data.predicted_class}</strong><br>Confidence: ${data.confidence}%`;
+                document.getElementById('pestRealtimeInfo').textContent = 
+                    data.library_data?.deskripsyon?.substring(0, 100) + '...' || 'Walang karagdagang impormasyon';
+            }
+        } catch (err) {
+            console.error('Real-time prediction error:', err);
+        }
+    }, 'image/jpeg');
+}
+
+// NEW: Enhanced prediction functions with location
+async function predictDisease(file) {
+    // Request location permission if not already enabled
+    if (!isLocationEnabled && !currentLocation) {
+        try {
+            await requestLocationPermission();
+        } catch (error) {
+            // User can still proceed without location
+            console.log('Proceeding without location data');
+        }
+    }
+
+    const formData = new FormData();
+    formData.append('disease_image', file);
+    
+    try {
+        const response = await fetch('/predict/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+        
+        currentDetectionType = 'disease';
+        currentImageFile = file;
+        currentPredictionData = data;
+        
+        showResultModal(file, data);
+    } catch (err) {
+        alert('Nabigo ang pagsusuri: ' + err.message);
+    }
+}
+
+async function predictPest(file) {
+    // Request location permission if not already enabled
+    if (!isLocationEnabled && !currentLocation) {
+        try {
+            await requestLocationPermission();
+        } catch (error) {
+            // User can still proceed without location
+            console.log('Proceeding without location data');
+        }
+    }
+
+    const formData = new FormData();
+    formData.append('pest_image', file);
+    
+    try {
+        const response = await fetch('/predict_pest/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+        
+        currentDetectionType = 'pest';
+        currentImageFile = file;
+        currentPredictionData = data;
+        
+        showResultModal(file, data);
+    } catch (err) {
+        alert('Nabigo ang pagsusuri: ' + err.message);
+    }
+}
+
+
+function showResultModal(file, data) {
+    const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+    
+    // Set image
+    document.getElementById('resultImage').src = URL.createObjectURL(file);
+    
+    // Set predicted class
+    document.getElementById('resultPrediction').textContent = data.predicted_class || 'Unknown';
+    
+    // Set confidence with animation
+    const confidence = parseFloat(data.confidence) || 0;
+    const confidenceBar = document.getElementById('confidenceBar');
+    const confidencePercentage = document.getElementById('confidencePercentage');
+    
+    // Reset animation
+    confidenceBar.style.width = '0%';
+    
+    // Animate confidence bar
+    setTimeout(() => {
+        confidenceBar.style.width = confidence + '%';
+        confidencePercentage.textContent = confidence.toFixed(1) + '%';
+        
+        // Change color based on confidence level
+        if (confidence >= 80) {
+            confidenceBar.style.background = 'linear-gradient(90deg, #2d6a4f 0%, #40916c 100%)';
+        } else if (confidence >= 60) {
+            confidenceBar.style.background = 'linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)';
+        } else {
+            confidenceBar.style.background = 'linear-gradient(90deg, #dc2626 0%, #ef4444 100%)';
+        }
+    }, 100);
+    
+    // Set library information
+    const infoDiv = document.getElementById('resultLibraryInfo');
+    if (data.library_data) {
+        let infoHTML = '<div class="info-section">';
+        infoHTML += '<div class="info-section-title"><i class="bi bi-info-circle-fill"></i>Detalyadong Impormasyon</div>';
+        
+        if (data.library_data.deskripsyon) {
+            infoHTML += `
+                <div class="info-item">
+                    <div class="info-item-label"><i class="bi bi-file-text"></i> Deskripsyon</div>
+                    <div class="info-item-content">${data.library_data.deskripsyon.replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+        }
+        
+        if (data.library_data.ano_ang_nagagawa_nito) {
+            infoHTML += `
+                <div class="info-item">
+                    <div class="info-item-label"><i class="bi bi-exclamation-triangle"></i> Ano ang Nagagawa Nito</div>
+                    <div class="info-item-content">${data.library_data.ano_ang_nagagawa_nito.replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+        }
+        
+        if (data.library_data.paano_ito_pangangasiwaan) {
+            infoHTML += `
+                <div class="info-item">
+                    <div class="info-item-label"><i class="bi bi-tools"></i> Paano Ito Pangangasiwaan</div>
+                    <div class="info-item-content">${data.library_data.paano_ito_pangangasiwaan.replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+        }
+        
+        infoHTML += '</div>';
+        infoDiv.innerHTML = infoHTML;
+    } else {
+        infoDiv.innerHTML = '<div class="no-info-message"><i class="bi bi-info-circle"></i> Walang karagdagang impormasyon</div>';
+    }
+    
+    modal.show();
+}
+
+// UPDATED: Enhanced save functions with location data using UI modals
+document.getElementById('saveResultBtn').addEventListener('click', async function() {
+    if (!currentImageFile || !currentPredictionData) {
+        showSaveError('Walang resulta na i-save');
+        return;
+    }
+    
+    const saveBtn = this;
+    const originalText = saveBtn.innerHTML;
+    
+    // Show loading state
+    saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Ini-save...';
+    saveBtn.disabled = true;
+    
+    const formData = new FormData();
+    
+    // Add location data if available
+    if (currentLocation) {
+        formData.append('latitude', currentLocation.latitude);
+        formData.append('longitude', currentLocation.longitude);
+        formData.append('location_accuracy', currentLocation.accuracy);
+    }
+    
+    try {
+        let response;
+        if (currentDetectionType === 'disease') {
+            formData.append('image', currentImageFile);
+            formData.append('predicted_class', currentPredictionData.predicted_class);
+            formData.append('confidence', currentPredictionData.confidence);
+            formData.append('library_id', currentPredictionData.library_data?.id || '');
+            
+            response = await fetch('/upload_to_supabase_and_save/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+        } else {
+            formData.append('pest_image', currentImageFile);
+            formData.append('predicted_class', currentPredictionData.predicted_class);
+            formData.append('confidence', currentPredictionData.confidence);
+            
+            response = await fetch('/save_pest_prediction/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show success modal instead of alert
+            showSaveSuccess(
+                currentDetectionType,
+                currentPredictionData.predicted_class,
+                currentPredictionData.confidence,
+                currentLocation !== null
+            );
+            
+            // Close the result modal
+            bootstrap.Modal.getInstance(document.getElementById('resultModal')).hide();
+        } else {
+            showSaveError(data.error || 'Unknown error occurred');
+        }
+    } catch (err) {
+        showSaveError(err.message);
+    } finally {
+        // Restore button state
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    }
+});
+
+
+document.getElementById('viewHistoryBtn').addEventListener('click', function() {
+    loadHistory();
+    new bootstrap.Modal(document.getElementById('historyModal')).show();
+});
+
+document.getElementById('applyFiltersBtn').addEventListener('click', function() {
+    loadHistory();
+});
+
+// NEW: Update history display to show location
+async function loadHistory() {
+    const startDate = document.getElementById('filterStartDate').value;
+    const endDate = document.getElementById('filterEndDate').value;
+    const classification = document.getElementById('filterClassification').value;
+    
+    const url = `/get_prediction_history/?start_date=${startDate}&end_date=${endDate}&classification=${classification}`;
+    
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        const container = document.getElementById('historyCards');
+        container.innerHTML = '';
+        
+        if (!data.history || data.history.length === 0) {
+            container.innerHTML = '<div class="col-12"><p class="text-center text-muted">Walang nahanap na kasaysayan</p></div>';
+            return;
+        }
+        
+        data.history.forEach(item => {
+            const hasLocation = item.latitude && item.longitude;
+            const locationBadge = hasLocation ? 
+                `<span class="badge bg-success ms-2"><i class="bi bi-geo-alt-fill"></i> May Lokasyon</span>` : 
+                `<span class="badge bg-secondary ms-2"><i class="bi bi-geo-alt"></i> Walang Lokasyon</span>`;
+            
+            const card = `
+                <div class="col-md-6">
+                    <div class="card history-card shadow-sm">
+                        <div class="row g-0">
+                            <div class="col-4">
+                                <img src="${item.image_url}" class="img-fluid rounded-start h-100" style="object-fit: cover;" alt="Scan">
+                            </div>
+                            <div class="col-8">
+                                <div class="card-body">
+                                    <h5 class="card-title">${item.predicted_class} ${locationBadge}</h5>
+                                    <p class="mb-1"><strong>Confidence:</strong> ${item.confidence}%</p>
+                                    ${hasLocation ? `
+                                        <p class="mb-1"><strong>Lokasyon:</strong> ${parseFloat(item.latitude).toFixed(4)}, ${parseFloat(item.longitude).toFixed(4)}</p>
+                                    ` : ''}
+                                    <p class="text-muted mb-0"><small>${item.uploaded_at}</small></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += card;
+        });
+    } catch (err) {
+        console.error('Error loading history:', err);
+        alert('Nabigo ang pag-load ng kasaysayan');
+    }
+}
+
+
+function stopRealtimeDetection(type) {
+    if (realtimeInterval) {
+        clearInterval(realtimeInterval);
+        realtimeInterval = null;
+    }
+    
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    
+    if (type === 'disease') {
+        document.getElementById('diseaseRealtimeVideo').classList.add('d-none');
+        document.getElementById('stopDiseaseRealtimeBtn').classList.add('d-none');
+        document.getElementById('startDiseaseRealtimeBtn').classList.remove('d-none');
+        document.getElementById('diseaseRealtimeResult').textContent = 'Naghihintay ng resulta...';
+        document.getElementById('diseaseRealtimeInfo').textContent = 'Magsisimula ang pagsusuri kapag binuksan ang camera';
+    } else {
+        document.getElementById('pestRealtimeVideo').classList.add('d-none');
+        document.getElementById('stopPestRealtimeBtn').classList.add('d-none');
+        document.getElementById('startPestRealtimeBtn').classList.remove('d-none');
+        document.getElementById('pestRealtimeResult').textContent = 'Naghihintay ng resulta...';
+        document.getElementById('pestRealtimeInfo').textContent = 'Magsisimula ang pagsusuri kapag binuksan ang camera';
+    }
+}
+
+window.addEventListener('beforeunload', function() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+    }
+    if (realtimeInterval) {
+        clearInterval(realtimeInterval);
+    }
+});
+
+// Refresh page functionality with enhanced UX
+document.getElementById('refreshPageBtn').addEventListener('click', function() {
+    const refreshBtn = this;
+    
+    // Add spinning animation
+    refreshBtn.classList.add('btn-refresh-spin');
+    refreshBtn.disabled = true;
+    
+    // Stop any active camera streams before refreshing
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    
+    if (realtimeInterval) {
+        clearInterval(realtimeInterval);
+        realtimeInterval = null;
+    }
+    
+    // Show loading state
+    const originalHTML = refreshBtn.innerHTML;
+    refreshBtn.style.opacity = '0.7';
+    
+    // Add a small delay to show the animation
+    setTimeout(() => {
+        window.location.reload();
+    }, 800);
+});
+
+// Keyboard shortcut support
+document.addEventListener('keydown', function(e) {
+    // F5 or Ctrl+R
+    if ((e.key === 'F5') || (e.ctrlKey && e.key === 'r')) {
+        e.preventDefault();
+        document.getElementById('refreshPageBtn').click();
+    }
+});
+
+// Add pulse animation on page load to draw attention to the refresh button
+document.addEventListener('DOMContentLoaded', function() {
+    const refreshBtn = document.getElementById('refreshPageBtn');
+    setTimeout(() => {
+        refreshBtn.style.animation = 'pulse 2s ease-in-out';
+        setTimeout(() => {
+            refreshBtn.style.animation = '';
+        }, 2000);
+    }, 1000);
+});
+
+// Add pulse animation to CSS
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+{% endblock %}
+
+
+
+{% comment %} {% extends 'farmer/base_farmer.html' %}
+{% block content %}
+<style> 
+    /* Ensure that the modal content is responsive */
+.modal-content {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Text justification */
+.modal-body p {
+    text-align: justify;
+    line-height: 1.6;  /* Better line spacing for readability */
+}
+
+/* Adjust modal image to be responsive */
+#pestPreviewImage {
+    width: 100%;
+    max-height: 300px;
+    object-fit: cover;  /* Ensures the image scales properly */
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .modal-dialog {
+        max-width: 90%;  /* Modal width on smaller screens */
+    }
+    .modal-body {
+        padding: 1.5rem; /* Slightly reduce padding on small screens */
+    }
+    .modal-title {
+        font-size: 1.5rem;  /* Adjust title size on mobile */
+    }
+    .btn {
+        font-size: 1rem;  /* Adjust button size */
+    }
+}
+
+</style>
+<div class="container mt-3">
+    <button id="viewHistoryBtn" class="btn btn-info">📜 View History</button>
+</div>
+
+<div class="container mt-4">
+
+    <!-- Disease Section -->
+    <h2 class="mb-3 text-danger">🦠 Disease Detection</h2>
+    <div class="row g-4">
+
+        <!-- Disease Upload -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-danger text-white fw-bold">📤 Upload Image</div>
+                <div class="card-body">
+                    <form id="diseasePredictForm" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="file" name="image" id="diseaseImageInput" class="form-control mb-3" required>
+                        <button type="submit" class="btn btn-danger w-100">Predict Disease</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disease Camera -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-danger text-white fw-bold">📸 Use Camera</div>
+                <div class="card-body text-center">
+                    <video id="diseaseCameraStream" width="100%" height="auto" autoplay class="mb-3 d-none"></video>
+                    <canvas id="diseaseCameraCanvas" class="d-none"></canvas>
+                    <img id="diseasePreviewCapturedImage" class="img-fluid mb-3 d-none" style="max-height: 300px;" />
+                    <button type="button" class="btn btn-outline-danger mb-2" id="startDiseaseCameraButton">Start Camera</button>
+                    <button type="button" class="btn btn-secondary d-none" id="captureDiseaseImageButton">Capture Image</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disease Real-Time -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-danger text-white fw-bold">📷 Real-Time Detection</div>
+                <div class="card-body text-center">
+                    <video id="diseaseVideo" width="100%" height="auto" autoplay muted class="border rounded d-none mb-2"></video>
+                    <canvas id="diseaseCanvas" class="d-none"></canvas>
+                    <button id="startDiseaseButton" class="btn btn-danger mb-2">Start</button>
+                    <button id="stopDiseaseButton" class="btn btn-outline-secondary d-none">Stop</button>
+                    <p id="rtDiseasePredictionText" class="fw-bold mt-3">Waiting for prediction...</p>
+                    <p><strong>Deskripsyon:</strong></p>
+                    <p id="rtDiseaseDeskripsyon">N/A</p>
+                    <p><strong>Ano ang Nagagawa Nito:</strong></p>
+                    <p id="rtDiseaseAnoNagagawa">N/A</p>
+                    <p><strong>Paano Ito Pangangasiwaan:</strong></p>
+                    <p id="rtDiseasePaanoPangangasiwaan">N/A</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pest Section -->
+<h2 class="mt-5 mb-3 text-success">🐛 Pest Detection</h2>
+<div class="row g-4">
+
+    <!-- Pest Upload -->
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-success text-white fw-bold">📤 Upload Image</div>
+            <div class="card-body">
+                <form id="pestPredictForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="file" name="pest_image" id="pestImageInput" class="form-control mb-3">
+                    <button type="submit" class="btn btn-success w-100">Predict Pest</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pest Camera -->
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-success text-white fw-bold">📸 Use Camera</div>
+            <div class="card-body text-center">
+                <video id="cameraStream" width="100%" height="auto" autoplay class="mb-3 d-none"></video>
+                <canvas id="cameraCanvas" class="d-none"></canvas>
+                <img id="previewCapturedImage" class="img-fluid mb-3 d-none" style="max-height: 300px;" />
+                <button type="button" class="btn btn-outline-success mb-2" id="startCameraButton">Start Camera</button>
+                <button type="button" class="btn btn-secondary d-none" id="captureImageButton">Capture Image</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pest Real-Time -->
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-success text-white fw-bold">📷 Real-Time Detection</div>
+            <div class="card-body text-center">
+                <video id="liveVideo" width="100%" height="auto" autoplay muted class="border rounded d-none mb-2"></video>
+                <canvas id="hiddenCanvas" class="d-none"></canvas>
+                <button id="startRealtimeButton" class="btn btn-success mb-2">Start</button>
+                <button id="stopRealtimeButton" class="btn btn-outline-secondary d-none">Stop</button>
+                <p id="rtPestPredictionText" class="fw-bold mt-3">Waiting for prediction...</p>
+                <p><strong>Deskripsyon:</strong> <span id="rtLibraryDeskripsyon">N/A</span></p>
+                <p><strong>Ano ang Nagagawa Nito:</strong> <span id="rtLibraryAnoNagagawa">N/A</span></p>
+                <p><strong>Paano Ito Pangangasiwaan:</strong> <span id="rtLibraryPaanoPangangasiwaan">N/A</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pest Result Modal (must be outside the cards) -->
+<div class="modal fade" id="pestResultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Pest Prediction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="pestPreviewImage" class="img-fluid mb-3" style="max-height: 300px;" />
+                <p id="pestPredictionText" class="fs-5 fw-bold"></p>
+                <p><strong>Deskripsyon:</strong> <span id="libraryDeskripsyon"></span></p>
+                <p><strong>Ano ang Nagagawa Nito:</strong> <span id="libraryAnoNagagawa"></span></p>
+                <p><strong>Paano Ito Pangangasiwaan:</strong> <span id="libraryPaanoPangangasiwaan"></span></p>
+                <button id="savePestButton" class="btn btn-primary">Save Image</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="diseaseResultModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Disease Prediction</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="diseasePreviewImage" class="img-fluid mb-3" style="max-height: 300px;" />
+                    <p id="diseasePredictionText" class="fs-5 fw-bold"></p>
+                    
+                    <!-- 🔽 DETAILED DISEASE INFORMATION -->
+                    <div id="diseaseLibraryInfo" class="text-start mt-4 px-3"></div>
+
+                    <button id="saveDiseaseButton" class="btn btn-primary mt-3">Save Image</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% comment %} Farmer Scan Modal of History {% endcomment %}
+{% comment %} <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">📜 Kasaysayan ng Suri ng Magsasaka</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Filters -->
+        <div class="row g-2 mb-3">
+          <div class="col-md-3">
+            <input type="date" id="filterStartDate" class="form-control" placeholder="Start Date">
+          </div>
+          <div class="col-md-3">
+            <input type="date" id="filterEndDate" class="form-control" placeholder="End Date">
+          </div>
+          <div class="col-md-3">
+            <select id="filterClassification" class="form-select">
+            <option value="">Lahat</option>
+            <option value="peste">Peste</option>
+            <option value="sakit">Sakit</option>
+            </select>
+
+          </div>
+          <div class="col-md-3">
+            <button id="applyFiltersBtn" class="btn btn-primary w-100">Mag-apply ng Mga Filter</button>
+          </div>
+        </div>
+
+        <!-- History Cards -->
+        <div id="historyCards" class="row g-3"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById("viewHistoryBtn").addEventListener("click", function(){
+    loadHistory();
+    new bootstrap.Modal(document.getElementById("historyModal")).show();
+});
+
+document.getElementById("applyFiltersBtn").addEventListener("click", function(){
+    loadHistory();
+});
+
+function loadHistory() {
+    let start = document.getElementById("filterStartDate").value;
+    let end = document.getElementById("filterEndDate").value;
+    let classification = document.getElementById("filterClassification").value;
+
+    let url = `/get_prediction_history/?start_date=${start}&end_date=${end}&classification=${classification}`;
+
+    fetch(url)
+    .then(res => res.json())
+    .then(data => {
+        let container = document.getElementById("historyCards");
+        container.innerHTML = "";
+
+        if (!data.history || data.history.length === 0) {
+            container.innerHTML = `<p class="text-center text-muted">No history found.</p>`;
+            return;
+        }
+
+        data.history.forEach(item => {
+            let card = `
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="row g-0">
+                        <div class="col-4">
+                            <img src="${item.image_url}" class="img-fluid rounded-start" alt="Scan Image">
+                        </div>
+                        <div class="col-8">
+                            <div class="card-body">
+                                <h5 class="card-title">${item.predicted_class}</h5>
+                                <p class="card-text mb-1"><strong>Kumpiyansa:</strong> ${item.confidence}%</p>
+                                <p class="card-text"><small class="text-muted">${item.uploaded_at}</small></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+            container.innerHTML += card;
+        });
+    })
+    .catch(err => {
+        console.error("Error fetching history:", err);
+    });
+}
+</script>
+
+
+<script>
+// Add these variable declarations at the very top of your JavaScript section
+let diseaseImageFile = null;
+let diseasePredictionData = null;
+
+// Disease Form Submission (Upload) - FIXED VERSION
+document.getElementById('diseasePredictForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    // Check if we're using a file from the file input or a camera capture
+    if (!diseaseImageFile) {
+        diseaseImageFile = document.getElementById('diseaseImageInput').files[0];
+    }
+    
+    if (!diseaseImageFile) {
+        alert('Please select or capture an image first');
+        return;
+    }
+
+    const formData = new FormData();
+    // Use 'disease_image' to match the updated view function parameter
+    formData.append('disease_image', diseaseImageFile);
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch('/predict/', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': csrfToken }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Disease prediction response:', data); // Debug log
+        
+        diseasePredictionData = data;
+
+        // Create an object URL from the local file we already have
+        const imageUrl = URL.createObjectURL(diseaseImageFile);
+        
+        // Set preview image
+        document.getElementById('diseasePreviewImage').src = imageUrl;
+        
+        // Set prediction summary - FIXED to use correct property names
+        document.getElementById('diseasePredictionText').innerText =
+            `Prediction: ${data.predicted_class || 'Unknown'} (Confidence: ${data.confidence || 0}%)`;
+
+        // Display detailed Library information if available
+        const infoDiv = document.getElementById('diseaseLibraryInfo');
+        if (data.library_data) {
+            infoDiv.innerHTML = `
+                <h5>Deskripsyon</h5><p>${(data.library_data.deskripsyon || 'N/A').replace(/\n/g, '<br>')}</p>
+                <h5>Ano ang nagagawa nito</h5><p>${(data.library_data.ano_ang_nagagawa_nito || 'N/A').replace(/\n/g, '<br>')}</p>
+                <h5>Bakit at saan ito nangyayari</h5><p>${(data.library_data.bakit_at_saan_ito_nangyayari || 'N/A').replace(/\n/g, '<br>')}</p>
+                <h5>Paano ito matutukoy</h5><p>${(data.library_data.paano_ito_matutukoy || 'N/A').replace(/\n/g, '<br>')}</p>
+                <h5>Bakit ito mahalaga</h5><p>${(data.library_data.bakit_ito_mahalaga || 'N/A').replace(/\n/g, '<br>')}</p>
+                <h5>Paano ito pangangasiwaan</h5><p>${(data.library_data.paano_ito_pangangasiwaan || 'N/A').replace(/\n/g, '<br>')}</p>
+            `;
+        } else {
+            infoDiv.innerHTML = `<p class="text-danger">No additional information found for this disease.</p>`;
+        }
+
+        // Show modal
+        new bootstrap.Modal(document.getElementById('diseaseResultModal')).show();
+    })
+    .catch(err => {
+        console.error('Prediction error:', err);
+        alert('Prediction failed: ' + err.message);
+    });
+});
+
+// Disease Camera Capture - FIXED
+let diseaseCameraTrack = null;
+
+document.getElementById('startDiseaseCameraButton').addEventListener('click', async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById('diseaseCameraStream');
+        video.srcObject = stream;
+        diseaseCameraTrack = stream.getTracks()[0];
+        video.classList.remove('d-none');
+        document.getElementById('captureDiseaseImageButton').classList.remove('d-none');
+    } catch (err) {
+        alert("Unable to access camera: " + err.message);
+    }
+});
+
+document.getElementById('captureDiseaseImageButton').addEventListener('click', () => {
+    const video = document.getElementById('diseaseCameraStream');
+    const canvas = document.getElementById('diseaseCameraCanvas');
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(blob => {
+        const previewImg = document.getElementById('diseasePreviewCapturedImage');
+        diseaseImageFile = new File([blob], 'captured_disease.jpg', { type: 'image/jpeg' });
+        previewImg.src = URL.createObjectURL(blob);
+        previewImg.classList.remove('d-none');
+
+        // Simulate a submit
+        document.getElementById('diseasePredictForm').dispatchEvent(new Event('submit'));
+    }, 'image/jpeg');
+
+    if (diseaseCameraTrack) diseaseCameraTrack.stop();
+    video.classList.add('d-none');
+    document.getElementById('captureDiseaseImageButton').classList.add('d-none');
+});
+
+// Real-Time Disease Detection - FIXED
+let diseaseVideo = document.getElementById('diseaseVideo');
+let diseaseCanvas = document.getElementById('diseaseCanvas');
+let startDiseaseBtn = document.getElementById('startDiseaseButton');
+let stopDiseaseBtn = document.getElementById('stopDiseaseButton');
+let diseaseStreamTrack = null;
+let diseaseIntervalId = null;
+
+startDiseaseBtn.addEventListener('click', async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        diseaseVideo.srcObject = stream;
+        diseaseStreamTrack = stream.getTracks()[0];
+        diseaseVideo.classList.remove('d-none');
+        startDiseaseBtn.classList.add('d-none');
+        stopDiseaseBtn.classList.remove('d-none');
+
+        diseaseIntervalId = setInterval(captureAndPredictDisease, 2000);
+    } catch (err) {
+        alert("Camera access denied.");
+    }
+});
+
+stopDiseaseBtn.addEventListener('click', () => {
+    if (diseaseStreamTrack) diseaseStreamTrack.stop();
+    clearInterval(diseaseIntervalId);
+    diseaseVideo.classList.add('d-none');
+    stopDiseaseBtn.classList.add('d-none');
+    startDiseaseBtn.classList.remove('d-none');
+});
+
+function captureAndPredictDisease() {
+    const context = diseaseCanvas.getContext('2d');
+    diseaseCanvas.width = diseaseVideo.videoWidth;
+    diseaseCanvas.height = diseaseVideo.videoHeight;
+    context.drawImage(diseaseVideo, 0, 0, diseaseCanvas.width, diseaseCanvas.height);
+
+    diseaseCanvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append('disease_image', blob, 'frame.jpg');
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch('/predict/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Real-time disease prediction:', data); // Debug log
+
+            if (data && data.predicted_class) {
+                document.getElementById('rtDiseasePredictionText').innerText = `Prediksyon: ${data.predicted_class}\nConfidence: ${parseFloat(data.confidence || 0).toFixed(2)}%`;
+            } else {
+                document.getElementById('rtDiseasePredictionText').innerText = 'Waiting for prediction...';
+            }
+
+            // Update real-time display with library data - FIXED property access
+            document.getElementById('rtDiseaseDeskripsyon').innerText = data.library_data?.deskripsyon || 'N/A';
+            document.getElementById('rtDiseaseAnoNagagawa').innerText = data.library_data?.ano_ang_nagagawa_nito || 'N/A';
+            document.getElementById('rtDiseasePaanoPangangasiwaan').innerText = data.library_data?.paano_ito_pangangasiwaan || 'N/A';
+        })
+        .catch(err => {
+            console.error('Disease prediction failed:', err);
+            document.getElementById('rtDiseasePredictionText').innerText = 'Error fetching prediction.';
+        });
+    }, 'image/jpeg');
+}
+
+// Save Disease Button - FIXED
+document.getElementById('saveDiseaseButton').addEventListener('click', function () {
+    if (!diseaseImageFile || !diseasePredictionData) {
+        alert('No prediction data to save.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', diseaseImageFile);
+    formData.append('predicted_class', diseasePredictionData.predicted_class || 'Unknown');
+    formData.append('confidence', diseasePredictionData.confidence || 0);
+    formData.append('library_id', diseasePredictionData.library_data?.id || '');
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch('/upload_to_supabase_and_save/', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': csrfToken }
+    })
+    .then(res => res.json())
+    .then(data => alert(data.success ? 'Image saved successfully!' : 'Failed to save.'))
+    .catch(err => alert('Save error: ' + err.message));
+});
+
+</script> {% endcomment %} 
+
+
+{% comment %} <script>
+    let pestImageFile = null;
+    let pestPredictionData = null;
+
+    document.getElementById('pestPredictForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const input = document.getElementById('pestImageInput');
+        if (!pestImageFile && !input.files.length) {
+            alert('Please select or capture an image.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('pest_image', pestImageFile || input.files[0]);
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch('/predict_pest/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(res => res.json())
+        .then(data => {
+            pestPredictionData = data;
+            document.getElementById('pestPreviewImage').src = data.file_url || '';
+            document.getElementById('pestPredictionText').innerText = `Prediksyon: ${data.predicted_class}\nConfidence: ${parseFloat(data.confidence).toFixed(2)}%`;
+
+            document.getElementById('libraryDeskripsyon').innerText = data.library_data?.deskripsyon || 'Wala.';
+            document.getElementById('libraryAnoNagagawa').innerText = data.library_data?.ano_ang_nagagawa_nito || 'Wala.';
+            document.getElementById('libraryPaanoPangangasiwaan').innerText = data.library_data?.paano_ito_pangangasiwaan || 'Wala.';
+
+            new bootstrap.Modal(document.getElementById('pestResultModal')).show();
+        })
+        .catch(err => alert('Prediction failed: ' + err.message));
+    });
+
+    document.getElementById('savePestButton').addEventListener('click', function () {
+        if (!pestImageFile || !pestPredictionData) return;
+
+        const formData = new FormData();
+        formData.append('pest_image', pestImageFile);
+        formData.append('predicted_class', pestPredictionData.predicted_class);
+        formData.append('confidence', pestPredictionData.confidence);
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch('/save_pest_prediction/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(res => res.json())
+        .then(data => alert(data.success ? 'Saved successfully!' : 'Failed to save.'))
+        .catch(err => alert('Save error: ' + err.message));
+    });
+</script>
+
+<!-- JS Scripts -->
+<script>
+    let pestImageFile = null;
+
+    document.getElementById('pestPredictForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const inputElement = document.getElementById('pestImageInput');
+
+        if (!pestImageFile && (!inputElement.files.length || !inputElement.files[0])) {
+            alert('Please select or capture an image.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('pest_image', pestImageFile || inputElement.files[0]);
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch('/predict_pest/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('pestPreviewImage').src = data.file_url || '';
+            document.getElementById('pestPredictionText').innerText = `Prediksyon: ${data.predicted_class}\nConfidence: ${parseFloat(data.confidence).toFixed(2)}%`;
+
+            const lib = data.library_data;
+            document.getElementById('libraryDeskripsyon').innerText = lib?.deskripsyon || 'No additional information available.';
+            document.getElementById('libraryAnoNagagawa').innerText = lib?.ano_ang_nagagawa_nito || 'No additional information available.';
+            document.getElementById('libraryPaanoPangangasiwaan').innerText = lib?.paano_ito_pangangasiwaan || 'No additional information available.';
+
+            new bootstrap.Modal(document.getElementById('pestResultModal')).show();
+        })
+        .catch(err => {
+            alert('Prediction failed: ' + err.message);
+        });
+    });
+
+    document.getElementById('savePestButton').addEventListener('click', () => {
+        const predictionText = document.getElementById('pestPredictionText').innerText;
+        if (!predictionText || !pestImageFile) {
+            alert('No prediction to save.');
+            return;
+        }
+
+        const [predictedLine, confidenceLine] = predictionText.split('\n');
+        const predictedClass = predictedLine?.replace('Prediksyon: ', '').trim();
+        const confidence = parseFloat(confidenceLine?.replace('Confidence: ', '').replace('%', '').trim() || 0);
+
+        const saveFormData = new FormData();
+        saveFormData.append('pest_image', pestImageFile);
+        saveFormData.append('predicted_class', predictedClass);
+        saveFormData.append('confidence', confidence);
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch('/save_pest_prediction/', {
+            method: 'POST',
+            body: saveFormData,
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('Pest image and prediction successfully saved!');
+            } else {
+                alert(data.error || 'Failed to save the prediction.');
+            }
+        })
+        .catch(err => {
+            alert('Save failed: ' + err.message);
+        });
+    });
+</script>
+
+<!-- Camera Script -->
+<script>
+    const cameraStream = document.getElementById('cameraStream');
+    const cameraCanvas = document.getElementById('cameraCanvas');
+    const startCameraButton = document.getElementById('startCameraButton');
+    const captureImageButton = document.getElementById('captureImageButton');
+    const previewCapturedImage = document.getElementById('previewCapturedImage');
+    let cameraStreamTrack = null;
+
+    startCameraButton.addEventListener('click', async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            cameraStream.srcObject = stream;
+            cameraStream.classList.remove('d-none');
+            captureImageButton.classList.remove('d-none');
+            startCameraButton.classList.add('d-none');
+            cameraStreamTrack = stream.getTracks()[0];
+        } catch (err) {
+            alert("Camera access denied or not available.");
+        }
+    });
+
+    captureImageButton.addEventListener('click', () => {
+        const context = cameraCanvas.getContext('2d');
+        cameraCanvas.width = cameraStream.videoWidth;
+        cameraCanvas.height = cameraStream.videoHeight;
+        context.drawImage(cameraStream, 0, 0, cameraCanvas.width, cameraCanvas.height);
+
+        // Create blob and convert to file
+        cameraCanvas.toBlob(blob => {
+            pestImageFile = new File([blob], 'captured_pest.jpg', { type: 'image/jpeg' });
+
+            // Show preview
+            previewCapturedImage.src = URL.createObjectURL(blob);
+            previewCapturedImage.classList.remove('d-none');
+
+            // Auto-submit for prediction
+            document.getElementById('pestPredictForm').dispatchEvent(new Event('submit'));
+        }, 'image/jpeg');
+
+        // Stop the camera
+        if (cameraStreamTrack) cameraStreamTrack.stop();
+
+        // Reset UI
+        cameraStream.classList.add('d-none');
+        captureImageButton.classList.add('d-none');
+        startCameraButton.classList.remove('d-none');
+    });
+</script>
+
+
+
+<script>
+let video = document.getElementById('liveVideo');
+let canvas = document.getElementById('hiddenCanvas');
+let startBtn = document.getElementById('startRealtimeButton');
+let stopBtn = document.getElementById('stopRealtimeButton');
+let streamTrack = null;
+let intervalId = null;
+
+startBtn.addEventListener('click', async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        streamTrack = stream.getTracks()[0];
+        video.classList.remove('d-none');
+        startBtn.classList.add('d-none');
+        stopBtn.classList.remove('d-none');
+
+        intervalId = setInterval(captureAndPredict, 2000);
+    } catch (err) {
+        alert("Camera access denied.");
+    }
+});
+
+stopBtn.addEventListener('click', () => {
+    if (streamTrack) streamTrack.stop();
+    clearInterval(intervalId);
+    video.classList.add('d-none');
+    stopBtn.classList.add('d-none');
+    startBtn.classList.remove('d-none');
+});
+
+function captureAndPredict() {
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append('pest_image', blob, 'frame.jpg');
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch('/predict_pest/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Debugging: Log the prediction result to see what's returned
+            console.log(data);
+
+            // Check if the necessary data is present and update the elements
+            if (data && data.predicted_class) {
+                document.getElementById('pestPredictionText').innerText = `Prediksyon: ${data.predicted_class}\nConfidence: ${parseFloat(data.confidence).toFixed(2)}%`;
+            } else {
+                document.getElementById('pestPredictionText').innerText = 'Waiting for prediction...';
+            }
+
+            document.getElementById('rtPestPredictionText').innerText = `Prediksyon: ${data.predicted_class}\nConfidence: ${parseFloat(data.confidence).toFixed(2)}%`;
+
+            document.getElementById('rtLibraryDeskripsyon').innerText = data.library_data?.deskripsyon || 'N/A';
+            document.getElementById('rtLibraryAnoNagagawa').innerText = data.library_data?.ano_ang_nagagawa_nito || 'N/A';
+            document.getElementById('rtLibraryPaanoPangangasiwaan').innerText = data.library_data?.paano_ito_pangangasiwaan || 'N/A';
+        })
+        .catch(err => {
+            console.error('Prediction failed:', err);
+            document.getElementById('pestPredictionText').innerText = 'Error fetching prediction.';
+        });
+    }, 'image/jpeg');
+}
+</script>
+{% endblock %} {% endcomment %}

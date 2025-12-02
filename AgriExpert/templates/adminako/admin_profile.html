@@ -1,0 +1,327 @@
+{% extends 'adminako/base_admin.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-user-cog me-2"></i>Admin Profile</h4>
+                        <span class="badge bg-light text-success">Admin</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    
+                    {% if not profile_verified %}
+                    <!-- Password Verification Section -->
+                    <div class="text-center py-4">
+                        <div class="mb-4">
+                            <i class="fas fa-lock fa-3x text-warning mb-3"></i>
+                            <h4>Verify Your Identity</h4>
+                            <p class="text-muted">For security reasons, please enter your current password to view and edit your profile.</p>
+                        </div>
+                        
+                        <form method="POST" class="w-75 mx-auto">
+                            {% csrf_token %}
+                            <input type="hidden" name="verify_password" value="true">
+                            
+                            <div class="mb-3">
+                                <label for="current_password" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="current_password" name="current_password" 
+                                       placeholder="Enter your current password" required>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-shield-alt me-2"></i>Verify Password
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <!-- Profile Display and Edit Section -->
+                    <div class="row">
+                        <!-- Profile Picture Section -->
+                        <div class="col-md-4 text-center mb-4">
+                            <div class="position-relative d-inline-block">
+                                <img src="{% if admin.profile_picture %}{{ admin.profile_picture }}{% else %}{% static 'default-profile.jpg' %}{% endif %}" 
+                                    class="rounded-circle border border-3 border-success" 
+                                    alt="Profile Picture" 
+                                    style="width: 150px; height: 150px; object-fit: cover;"
+                                    onerror="this.onerror=null; this.src='{% static 'default-profile.jpg' %}'">
+                                <button class="btn btn-sm btn-outline-success position-absolute bottom-0 end-0 rounded-circle"
+                                        onclick="document.getElementById('profile_picture').click()"
+                                        title="Change photo"
+                                        style="width: 35px; height: 35px;">
+                                    <i class="fas fa-camera"></i>
+                                </button>
+                            </div>
+                            <h5 class="mt-3">{{ admin.first_name }} {{ admin.last_name }}</h5>
+                            <p class="text-muted mb-1">{{ admin.position }}</p>
+                            <p class="text-muted"><small>{{ admin.organization }}</small></p>
+                            <p class="text-muted"><small>@{{ admin.username }}</small></p>
+                            
+                            <div class="mt-3">
+                                <a href="{% url 'admin_logout_profile' %}" class="btn btn-outline-warning btn-sm">
+                                    <i class="fas fa-lock me-1"></i>Lock Profile
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Profile Form Section -->
+                        <div class="col-md-8">
+                            <form method="POST" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <input type="hidden" name="update_profile" value="true">
+                                
+                                <!-- Hidden file input for profile picture -->
+                                <input type="file" id="profile_picture" name="profile_picture" 
+                                       accept="image/*" class="d-none" onchange="this.form.submit()">
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">First Name *</label>
+                                        {{ form.first_name }}
+                                        {% if form.first_name.errors %}
+                                        <div class="text-danger small mt-1">{{ form.first_name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Middle Name</label>
+                                        {{ form.middle_name }}
+                                        {% if form.middle_name.errors %}
+                                        <div class="text-danger small mt-1">{{ form.middle_name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Last Name *</label>
+                                        {{ form.last_name }}
+                                        {% if form.last_name.errors %}
+                                        <div class="text-danger small mt-1">{{ form.last_name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Username</label>
+                                        <input type="text" class="form-control bg-light" value="{{ admin.username }}" readonly>
+                                        <small class="text-muted">Username cannot be changed</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Email Address *</label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">{{ form.email.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Organization *</label>
+                                        {{ form.organization }}
+                                        {% if form.organization.errors %}
+                                        <div class="text-danger small mt-1">{{ form.organization.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Position *</label>
+                                        {{ form.position }}
+                                        {% if form.position.errors %}
+                                        <div class="text-danger small mt-1">{{ form.position.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <hr class="my-4">
+                                
+                                <h6 class="text-success mb-3"><i class="fas fa-key me-2"></i>Change Password (Optional)</h6>
+                                <div class="row">
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label">New Password</label>
+                                        {{ form.new_password }}
+                                        {% if form.new_password.errors %}
+                                        <div class="text-danger small mt-1">{{ form.new_password.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label">Confirm New Password</label>
+                                        {{ form.confirm_password }}
+                                        {% if form.confirm_password.errors %}
+                                        <div class="text-danger small mt-1">{{ form.confirm_password.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <small>
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Leave password fields blank if you don't want to change your password.
+                                    </small>
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="{% url 'admin_logout_profile' %}" class="btn btn-outline-secondary me-2">
+                                        <i class="fas fa-times me-2"></i>Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save me-2"></i>Update Profile
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Messages Display -->
+            {% if messages %}
+            <div class="mt-3">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <i class="fas 
+                        {% if message.tags == 'success' %}fa-check-circle
+                        {% elif message.tags == 'error' %}fa-exclamation-circle
+                        {% elif message.tags == 'warning' %}fa-exclamation-triangle
+                        {% else %}fa-info-circle{% endif %}
+                        me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+}
+
+.rounded-circle {
+    transition: transform 0.3s ease;
+}
+
+.rounded-circle:hover {
+    transform: scale(1.05);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #218838, #1e9e8a);
+    transform: translateY(-1px);
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add real-time password confirmation validation
+    const newPassword = document.querySelector('input[name="new_password"]');
+    const confirmPassword = document.querySelector('input[name="confirm_password"]');
+    
+    function validatePasswords() {
+        if (newPassword.value && confirmPassword.value) {
+            if (newPassword.value !== confirmPassword.value) {
+                confirmPassword.style.borderColor = '#dc3545';
+                confirmPassword.classList.add('is-invalid');
+            } else {
+                confirmPassword.style.borderColor = '#28a745';
+                confirmPassword.classList.remove('is-invalid');
+                confirmPassword.classList.add('is-valid');
+            }
+        } else {
+            confirmPassword.style.borderColor = '';
+            confirmPassword.classList.remove('is-invalid', 'is-valid');
+        }
+    }
+    
+    if (newPassword && confirmPassword) {
+        newPassword.addEventListener('input', validatePasswords);
+        confirmPassword.addEventListener('input', validatePasswords);
+    }
+    
+    // Auto-hide alerts after 5 seconds
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            if (alert.classList.contains('show')) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }
+        }, 5000);
+    });
+    
+    // Profile picture preview and upload
+const profilePictureInput = document.getElementById('profile_picture');
+if (profilePictureInput) {
+    profilePictureInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            // Show preview immediately
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const profileImg = document.querySelector('.rounded-circle');
+                profileImg.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            
+            // Create a temporary form for just the profile picture
+            const formData = new FormData();
+            formData.append('profile_picture', file);
+            formData.append('update_profile', 'true');
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            // Submit via AJAX to avoid page reload
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                // Show success message
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                const alerts = tempDiv.querySelectorAll('.alert');
+                if (alerts.length > 0) {
+                    // Add the alert to the page
+                    document.querySelector('.mt-3').innerHTML = alerts[0].outerHTML;
+                }
+                messages.success(request, "Profile picture updated successfully!");
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error uploading profile picture');
+            });
+        }
+    });
+}
+});
+</script>
+{% endblock %}

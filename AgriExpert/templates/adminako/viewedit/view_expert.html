@@ -1,0 +1,461 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expert Details - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #28a745;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+        
+        .profile-img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--primary-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .info-card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .card-header-custom {
+            background: linear-gradient(135deg, var(--primary-color), #20c997);
+            color: white;
+            border: none;
+            padding: 25px;
+        }
+        
+        .info-table {
+            border: none;
+        }
+        
+        .info-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            padding: 15px;
+            width: 30%;
+        }
+        
+        .info-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            background-color: white;
+        }
+        
+        .status-badge {
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+        
+        .btn-custom {
+            border-radius: 8px;
+            padding: 10px 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .proof-iframe {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .expert-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            border-radius: 0 0 30px 30px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        @media (max-width: 768px) {
+            .profile-img {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .action-buttons .btn {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="expert-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-5 fw-bold mb-2">
+                        <i class="fas fa-user-tie me-3"></i>Expert Profile Management
+                    </h1>
+                    <p class="lead mb-0">Municipal Agriculture Office - Victoria, Oriental Mindoro</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <a href="{% url 'admin_reports' %}" class="btn btn-light btn-custom">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mb-5">
+        <!-- Profile Summary Card -->
+        <div class="card info-card mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-3 text-center">
+                        <img src="{{ expert.profile_picture }}" alt="Profile Picture" class="profile-img mb-3" onerror="this.src='{% static 'images/default-profile.png' %}'">
+                    </div>
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h2 class="text-primary fw-bold">{{ expert.first_name }} {{ expert.middle_name }} {{ expert.last_name }}</h2>
+                                <h5 class="text-muted mb-3">{{ expert.position }} • {{ expert.role }}</h5>
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    <span class="status-badge badge {% if expert.status == 'Approved' %}bg-success{% elif expert.status == 'Pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                                        <i class="fas fa-circle me-1" style="font-size: 0.6rem;"></i>
+                                        {{ expert.status }}
+                                    </span>
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-id-badge me-1"></i>ID: {{ expert.id }}
+                                    </span>
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-map-marker-alt me-1"></i>{{ expert.barangay }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-md-end">
+                                <div class="btn-group-vertical">
+                                    <button class="btn btn-success mb-2" data-bs-toggle="modal" data-bs-target="#statusModal">
+                                        <i class="fas fa-edit me-2"></i>Update Status
+                                    </button>
+                                    {% if expert.proof_of_expertise %}
+                                    <button class="btn btn-warning" onclick="previewFile('{{ expert.proof_of_expertise }}')">
+                                        <i class="fas fa-file-alt me-2"></i>View Proof
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expert Details Card -->
+        <div class="card info-card">
+            <div class="card-header card-header-custom">
+                <h4 class="mb-0"><i class="fas fa-info-circle me-2"></i>Expert Information</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table info-table">
+                        <tbody>
+                            <tr>
+                                <th><i class="fas fa-user me-2"></i>Username</th>
+                                <td>{{ expert.username }}</td>
+                            </tr>
+                            <tr>
+                                <th><i class="fas fa-envelope me-2"></i>Email Address</th>
+                                <td>{{ expert.email }}</td>
+                            </tr>
+                            <tr>
+                                <th><i class="fas fa-map-marker-alt me-2"></i>Barangay</th>
+                                <td>{{ expert.barangay }}</td>
+                            </tr>
+                            <tr>
+                                <th><i class="fas fa-phone me-2"></i>Phone Number</th>
+                                <td>{{ expert.phone_number }}</td>
+                            </tr>
+                            <tr>
+                                <th><i class="fas fa-id-card me-2"></i>License Number</th>
+                                <td>{{ expert.license_number|default:"Not Provided" }}</td>
+                            </tr>
+                            <tr>
+                                <th><i class="fas fa-briefcase me-2"></i>Position</th>
+                                <td>{{ expert.position|default:"Not Specified" }}</td>
+                            </tr>
+                            <tr>
+                                <th><i class="fas fa-file-certificate me-2"></i>Proof of Expertise</th>
+                                <td>
+                                    {% if expert.proof_of_expertise %}
+                                        <button class="btn btn-outline-primary btn-sm" onclick="previewFile('{{ expert.proof_of_expertise }}')">
+                                            <i class="fas fa-eye me-1"></i>View Document
+                                        </button>
+                                        <small class="text-muted ms-2">Click to preview</small>
+                                    {% else %}
+                                        <span class="text-muted">No file uploaded</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th><i class="fas fa-tasks me-2"></i>Current Status</th>
+                                <td>
+                                    <span class="status-badge badge {% if expert.status == 'Approved' %}bg-success{% elif expert.status == 'Pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                                        {{ expert.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-4">
+            <div class="action-buttons">
+                <button class="btn btn-success btn-custom" data-bs-toggle="modal" data-bs-target="#statusModal">
+                    <i class="fas fa-save me-2"></i>Update Status
+                </button>
+                <a href="{% url 'admin_reports' %}" class="btn btn-secondary btn-custom">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Update Modal -->
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="statusModalLabel">
+                        <i class="fas fa-edit me-2"></i>Update Expert Status
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Update the status for <strong>{{ expert.first_name }} {{ expert.last_name }}</strong>:</p>
+                    
+                    <div class="mb-3">
+                        <label for="status-select" class="form-label fw-bold">Select Status:</label>
+                        <select id="status-select" class="form-select form-select-lg">
+                            <option value="Pending" {% if expert.status == "Pending" %}selected{% endif %}>
+                                🟡 Pending - Under Review
+                            </option>
+                            <option value="Approved" {% if expert.status == "Approved" %}selected{% endif %}>
+                                🟢 Approved - Active Expert
+                            </option>
+                            <option value="Rejected" {% if expert.status == "Rejected" %}selected{% endif %}>
+                                🔴 Rejected - Application Denied
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Approved experts can access all system features. Rejected experts will be restricted from expert functionalities.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-success" id="save-status-btn">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="successModalLabel">
+                        <i class="fas fa-check-circle me-2"></i>Success!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="fas fa-check-circle text-success mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="text-success">Status Updated Successfully!</h5>
+                    <p class="mb-0" id="successMessage">The expert's status has been updated.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">
+                        <i class="fas fa-thumbs-up me-2"></i>Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Proof of Expertise Modal -->
+    <div class="modal fade" id="proofModal" tabindex="-1" aria-labelledby="proofModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="proofModalLabel">
+                        <i class="fas fa-file-certificate me-2"></i>Proof of Expertise
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div id="proofContent" class="proof-iframe-container">
+                        <!-- File preview will be loaded here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Save status button click
+            $("#save-status-btn").click(function () {
+                var newStatus = $("#status-select").val();
+                var expertId = "{{ expert.id }}";
+                
+                // Show loading state
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
+                
+                $.ajax({
+                    url: "{% url 'update_expert_status' %}",
+                    type: "POST",
+                    data: {
+                        expert_id: expertId,
+                        status: newStatus,
+                        csrfmiddlewaretoken: "{{ csrf_token }}"
+                    },
+                    success: function (response) {
+                        // Close the status modal
+                        $('#statusModal').modal('hide');
+                        
+                        // Show success modal
+                        $('#successMessage').text('Expert status has been updated to: ' + newStatus);
+                        $('#successModal').modal('show');
+                        
+                        // Update the status badge on the page
+                        $('.status-badge').removeClass('bg-warning bg-success bg-danger');
+                        if (newStatus === 'Pending') {
+                            $('.status-badge').addClass('bg-warning').text(newStatus);
+                        } else if (newStatus === 'Approved') {
+                            $('.status-badge').addClass('bg-success').text(newStatus);
+                        } else {
+                            $('.status-badge').addClass('bg-danger').text(newStatus);
+                        }
+                    },
+                    error: function () {
+                        alert("Error updating status. Please try again.");
+                    },
+                    complete: function () {
+                        // Reset button state
+                        $btn.prop('disabled', false).html('<i class="fas fa-save me-2"></i>Save Changes');
+                    }
+                });
+            });
+            
+            // Close success modal and refresh
+            $('#successModal').on('hidden.bs.modal', function () {
+                // Optional: You can reload the page or update specific elements
+                // location.reload();
+            });
+        });
+
+        // File Preview Function
+        function previewFile(fileUrl) {
+            console.log("Opening file:", fileUrl);
+            let proofContent = document.getElementById("proofContent");
+            proofContent.innerHTML = '<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-warning"></i><p class="mt-2">Loading document...</p></div>';
+
+            if (!fileUrl) {
+                proofContent.innerHTML = '<div class="alert alert-danger">No file available!</div>';
+                return;
+            }
+
+            let fileExtension = fileUrl.split('.').pop().toLowerCase();
+
+            if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+                proofContent.innerHTML = `<img src="${fileUrl}" class="img-fluid rounded" alt="Proof of Expertise" style="max-height: 70vh;">`;
+            } else if (fileExtension === 'pdf') {
+                proofContent.innerHTML = `<iframe src="${fileUrl}" width="100%" height="600px" class="proof-iframe" style="border:none;"></iframe>`;
+            } else if (['doc', 'docx'].includes(fileExtension)) {
+                let convertUrl = `/convert_docx_to_pdf/?file_url=${encodeURIComponent(fileUrl)}`;
+
+                fetch(convertUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.pdf_url) {
+                        proofContent.innerHTML = `<iframe src="${data.pdf_url}" width="100%" height="600px" class="proof-iframe" style="border:none;"></iframe>`;
+                    } else {
+                        proofContent.innerHTML = `
+                            <div class="alert alert-warning">
+                                <p>Could not preview this document automatically.</p>
+                                <a href="${fileUrl}" target="_blank" class="btn btn-primary">
+                                    <i class="fas fa-download me-2"></i>Download Document
+                                </a>
+                            </div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching PDF:", error);
+                    proofContent.innerHTML = `
+                        <div class="alert alert-warning">
+                            <p>Error loading document preview.</p>
+                            <a href="${fileUrl}" target="_blank" class="btn btn-primary">
+                                <i class="fas fa-download me-2"></i>Download Document
+                            </a>
+                        </div>`;
+                });
+            } else {
+                proofContent.innerHTML = `
+                    <div class="alert alert-warning">
+                        <p>File format not supported for preview.</p>
+                        <a href="${fileUrl}" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-download me-2"></i>Download File
+                        </a>
+                    </div>`;
+            }
+
+            let proofModal = new bootstrap.Modal(document.getElementById('proofModal'));
+            proofModal.show();
+        }
+    </script>
+</body>
+</html>

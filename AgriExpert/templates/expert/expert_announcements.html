@@ -1,0 +1,388 @@
+{% extends 'expert/base_expert.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-lg">
+                <div class="card-header bg-success text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-bullhorn me-2"></i>Municipal Announcements</h4>
+                        <span class="badge bg-light text-dark fs-6">{{ total_announcements }} announcement{{ total_announcements|pluralize }}</span>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Messages -->
+                    {% if messages %}
+                    <div class="mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4 g-3">
+                        <div class="col-md-4">
+                            <div class="card bg-primary text-white border-0 shadow-sm">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-bullhorn fa-2x mb-2"></i>
+                                    <h2 class="mb-0 fw-bold">{{ total_announcements|default:0 }}</h2>
+                                    <p class="mb-0 small">Total Announcements</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-danger text-white border-0 shadow-sm">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                                    <h2 class="mb-0 fw-bold">{{ urgent_count|default:0 }}</h2>
+                                    <p class="mb-0 small">Urgent Priority</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-warning text-white border-0 shadow-sm">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                                    <h2 class="mb-0 fw-bold">{{ high_priority_count|default:0 }}</h2>
+                                    <p class="mb-0 small">High Priority</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search and Filter Section -->
+                    <div class="row mb-4 g-3">
+                        <div class="col-md-8">
+                            <form method="GET" class="d-flex">
+                                <input type="text" name="search" class="form-control form-control-lg shadow-sm" 
+                                       placeholder="🔍 Search announcements..." value="{{ search_query }}">
+                                <button type="submit" class="btn btn-success btn-lg ms-2 px-4">
+                                    <i class="fas fa-search me-1"></i>Search
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-4">
+                            <form method="GET" class="d-flex">
+                                <select name="priority" class="form-select form-select-lg shadow-sm" onchange="this.form.submit()">
+                                    <option value="">All Priorities</option>
+                                    <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>🔴 Urgent</option>
+                                    <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>🟡 High</option>
+                                    <option value="normal" {% if priority_filter == 'normal' %}selected{% endif %}>🔵 Normal</option>
+                                    <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>⚪ Low</option>
+                                </select>
+                                {% if priority_filter or search_query %}
+                                <a href="{% url 'expert_announcements' %}" class="btn btn-outline-secondary btn-lg ms-2">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Active Filters Display -->
+                    {% if priority_filter or search_query %}
+                    <div class="mb-3">
+                        <span class="text-muted me-2">Active filters:</span>
+                        {% if priority_filter %}
+                        <span class="badge bg-primary me-1">Priority: {{ priority_filter|title }}</span>
+                        {% endif %}
+                        {% if search_query %}
+                        <span class="badge bg-secondary me-1">Search: "{{ search_query }}"</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Announcements List -->
+                    <div class="announcement-list">
+                        {% for announcement in announcements %}
+                        <div class="card mb-4 announcement-card shadow-sm 
+                                    {% if announcement.priority == 'urgent' %}border-danger border-3{% elif announcement.priority == 'high' %}border-warning border-3{% else %}border-start border-success border-4{% endif %}">
+                            
+                            <!-- Large Image Section -->
+                            {% if announcement.image %}
+                            <div class="announcement-image-wrapper position-relative" style="height: 400px; overflow: hidden; background: #f8f9fa;">
+                                <img src="{{ announcement.image }}" 
+                                    class="announcement-image w-100 h-100" 
+                                    alt="{{ announcement.title }}" 
+                                    style="object-fit: contain; cursor: pointer;"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#imageModal{{ announcement.id }}">
+                                <div class="image-hover-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+                                    <div class="bg-dark bg-opacity-75 rounded-circle p-4">
+                                        <i class="fas fa-search-plus text-white fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="card-body p-4">
+                                <!-- Title and Priority Badges -->
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h4 class="card-title mb-0 fw-bold text-dark">{{ announcement.title }}</h4>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <span class="badge fs-6 px-3 py-2 
+                                            {% if announcement.priority == 'urgent' %}bg-danger
+                                            {% elif announcement.priority == 'high' %}bg-warning text-dark
+                                            {% elif announcement.priority == 'low' %}bg-secondary
+                                            {% else %}bg-success{% endif %}">
+                                            {% if announcement.priority == 'urgent' %}🔴 {% elif announcement.priority == 'high' %}⚠️ {% endif %}
+                                            {{ announcement.get_priority_display }}
+                                        </span>
+                                        <span class="badge bg-info text-dark fs-6 px-3 py-2">
+                                            👥 {{ announcement.get_target_audience_display }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Announcement Content -->
+                                <div class="announcement-content mb-4">
+                                    <p class="card-text fs-5 text-dark" style="line-height: 1.8; white-space: pre-wrap;">{{ announcement.content }}</p>
+                                </div>
+
+                                <!-- Metadata Section -->
+                                <div class="announcement-meta pt-3 border-top">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-user-shield text-success me-2"></i>
+                                                <span class="text-muted">Posted by: <strong class="text-dark">{{ announcement.author.first_name }} {{ announcement.author.last_name }}</strong></span>
+                                            </div>
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-calendar-alt text-primary me-2"></i>
+                                                <span class="text-muted">Posted: <strong class="text-dark">{{ announcement.created_at|date:"F d, Y - g:i A" }}</strong></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            {% if announcement.end_date %}
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-clock text-warning me-2"></i>
+                                                <span class="text-muted">Valid until: <strong class="text-dark">{{ announcement.end_date|date:"F d, Y" }}</strong></span>
+                                                {% if announcement.get_days_remaining %}
+                                                <span class="badge bg-warning text-dark ms-2">{{ announcement.get_days_remaining }} days left</span>
+                                                {% endif %}
+                                            </div>
+                                            {% endif %}
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-eye text-info me-2"></i>
+                                                <span class="text-muted">Views: <strong class="text-dark">{{ announcement.views_count|default:0 }}</strong></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Full-Screen Image Modal for Each Announcement -->
+                        <div class="modal fade" id="imageModal{{ announcement.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-fullscreen">
+                                <div class="modal-content bg-dark">
+                                    <div class="modal-header border-0">
+                                        <h5 class="modal-title text-white">{{ announcement.title }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body d-flex align-items-center justify-content-center p-0">
+                                        <img src="{{ announcement.image }}" class="img-fluid" alt="{{ announcement.title }}" style="max-height: 90vh; max-width: 100%; object-fit: contain;">
+                                    </div>
+                                    <div class="modal-footer border-0 justify-content-center">
+                                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                                            <i class="fas fa-times me-2"></i>Close
+                                        </button>
+                                        <a href="{{ announcement.image }}" class="btn btn-success px-4" download="{{ announcement.title }}.jpg">
+                                            <i class="fas fa-download me-2"></i>Download Image
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        {% if not announcements %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-bullhorn fa-4x text-muted mb-4"></i>
+                            <h3 class="text-muted">No Announcements Available</h3>
+                            <p class="text-muted fs-5">
+                                {% if priority_filter or search_query %}
+                                No announcements match your search criteria. Try adjusting your filters.
+                                {% else %}
+                                There are no active announcements at the moment. Please check back later!
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Card Animations */
+.announcement-card {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.announcement-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+/* Image Hover Effects */
+.announcement-image-wrapper {
+    position: relative;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.announcement-image {
+    transition: transform 0.3s ease;
+}
+
+.announcement-image:hover {
+    transform: scale(1.02);
+}
+
+.image-hover-overlay {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.announcement-image-wrapper:hover .image-hover-overlay {
+    opacity: 1;
+}
+
+/* Priority Border Styles */
+.border-danger.border-3 {
+    border-left: 6px solid #dc3545 !important;
+    background: linear-gradient(to right, rgba(220, 53, 69, 0.05) 0%, transparent 100%);
+}
+
+.border-warning.border-3 {
+    border-left: 6px solid #ffc107 !important;
+    background: linear-gradient(to right, rgba(255, 193, 7, 0.05) 0%, transparent 100%);
+}
+
+.border-success.border-4 {
+    border-left: 6px solid #198754 !important;
+}
+
+/* Content Styling */
+.announcement-content {
+    font-size: 1.1rem;
+    line-height: 1.8;
+}
+
+/* Meta Information */
+.announcement-meta i {
+    font-size: 1.1rem;
+}
+
+/* Statistics Cards */
+.card.bg-primary,
+.card.bg-danger,
+.card.bg-warning {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card.bg-primary:hover,
+.card.bg-danger:hover,
+.card.bg-warning:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+/* Search & Filter */
+.form-control:focus,
+.form-select:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+}
+
+/* Badge Styling */
+.badge {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Modal Improvements */
+.modal-fullscreen .modal-body {
+    background: rgba(0, 0, 0, 0.95);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .announcement-image-wrapper {
+        height: 250px !important;
+    }
+    
+    .card-title {
+        font-size: 1.25rem;
+    }
+    
+    .announcement-content {
+        font-size: 1rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-hide alerts
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            if (alert.classList.contains('show')) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }
+        }, 5000);
+    });
+
+    // Add smooth scroll to top when opening modals
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        modal.addEventListener('show.bs.modal', function() {
+            document.body.style.overflow = 'hidden';
+        });
+        
+        modal.addEventListener('hidden.bs.modal', function() {
+            document.body.style.overflow = 'auto';
+        });
+    });
+
+    // Image loading animation
+    const images = document.querySelectorAll('.announcement-image');
+    images.forEach(img => {
+        img.addEventListener('load', function() {
+            this.style.opacity = '0';
+            setTimeout(() => {
+                this.style.transition = 'opacity 0.5s ease';
+                this.style.opacity = '1';
+            }, 100);
+        });
+
+        // Handle image errors
+        img.addEventListener('error', function() {
+            this.parentElement.innerHTML = `
+                <div class="d-flex align-items-center justify-content-center h-100 bg-light">
+                    <div class="text-center">
+                        <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Image not available</p>
+                    </div>
+                </div>
+            `;
+        });
+    });
+});
+</script>
+{% endblock %}

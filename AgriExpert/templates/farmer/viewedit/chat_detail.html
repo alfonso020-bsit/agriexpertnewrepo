@@ -1,0 +1,705 @@
+{% extends 'farmer/base_farmer.html' %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-green: #198754;
+        --light-green: #20a464;
+        --lighter-green: #28b76f;
+        --pale-green: #e8f5e9;
+        --white: #ffffff;
+        --gray-light: #f5f5f5;
+        --gray-medium: #e0e0e0;
+        --gray-dark: #757575;
+    }
+
+    .chat-container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: var(--white);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    /* Enhanced chat header with expert profile */
+    .chat-header {
+        background: linear-gradient(135deg, var(--primary-green), var(--light-green));
+        color: var(--white);
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .expert-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 3px solid var(--white);
+        object-fit: cover;
+        background-color: var(--gray-medium);
+    }
+
+    .expert-info h4 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .expert-info p {
+        margin: 0;
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+
+    /* Enhanced chat box with better styling */
+    .chat-box {
+        height: 500px;
+        overflow-y: auto;
+        padding: 24px;
+        background: var(--gray-light);
+        scroll-behavior: smooth;
+    }
+
+    .chat-box::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .chat-box::-webkit-scrollbar-track {
+        background: var(--gray-light);
+    }
+
+    .chat-box::-webkit-scrollbar-thumb {
+        background: var(--gray-medium);
+        border-radius: 4px;
+    }
+
+    .chat-box::-webkit-scrollbar-thumb:hover {
+        background: var(--gray-dark);
+    }
+
+    /* Enhanced message bubbles with better design */
+    .message-wrapper {
+        display: flex;
+        margin-bottom: 16px;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .message-wrapper.sent {
+        justify-content: flex-end;
+    }
+
+    .message-wrapper.received {
+        justify-content: flex-start;
+    }
+
+    .message-bubble {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 16px;
+        position: relative;
+        word-wrap: break-word;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .message-bubble.sent {
+        background: var(--light-green);
+        color: var(--white);
+        border-bottom-right-radius: 4px;
+    }
+
+    .message-bubble.received {
+        background: var(--white);
+        color: #333;
+        border-bottom-left-radius: 4px;
+    }
+
+    .message-sender {
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 4px;
+        display: block;
+    }
+
+    .message-bubble.sent .message-sender {
+        color: rgba(255,255,255,0.9);
+    }
+
+    .message-bubble.received .message-sender {
+        color: var(--primary-green);
+    }
+
+    .message-text {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .message-image {
+        margin-top: 8px;
+        border-radius: 8px;
+        max-width: 100%;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .message-image:hover {
+        transform: scale(1.02);
+    }
+
+    .message-timestamp {
+        font-size: 0.75rem;
+        margin-top: 4px;
+        display: block;
+        opacity: 0.7;
+    }
+
+    /* Enhanced three-dot menu */
+    .message-options {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+    }
+
+    .message-options .btn {
+        padding: 2px 6px;
+        font-size: 1rem;
+        background: rgba(0,0,0,0.1);
+        border: none;
+        color: var(--white);
+        border-radius: 4px;
+    }
+
+    .message-options .btn:hover {
+        background: rgba(0,0,0,0.2);
+    }
+
+    .message-bubble.received .message-options .btn {
+        color: var(--gray-dark);
+    }
+
+    /* Enhanced input area */
+    .chat-input-area {
+        padding: 20px 24px;
+        background: var(--white);
+        border-top: 1px solid var(--gray-medium);
+    }
+
+    .input-group {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .input-group textarea {
+        flex: 1;
+        border: 2px solid var(--gray-medium);
+        border-radius: 24px;
+        padding: 12px 16px;
+        resize: none;
+        font-size: 0.95rem;
+        transition: border-color 0.2s;
+    }
+
+    .input-group textarea:focus {
+        border-color: var(--light-green);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.1);
+    }
+
+    .file-input-wrapper {
+        position: relative;
+    }
+
+    .file-input-wrapper input[type="file"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .file-input-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        background: var(--pale-green);
+        border: 2px solid var(--light-green);
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .file-input-label:hover {
+        background: var(--light-green);
+        color: var(--white);
+    }
+
+    .send-button {
+        width: 44px;
+        height: 44px;
+        background: var(--light-green);
+        border: none;
+        border-radius: 50%;
+        color: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .send-button:hover {
+        background: var(--primary-green);
+        transform: scale(1.05);
+    }
+
+    /* Enhanced modals */
+    .modal-content {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+        background: var(--light-green);
+        color: var(--white);
+        border-radius: 12px 12px 0 0;
+        padding: 16px 24px;
+    }
+
+    .modal-header.bg-danger {
+        background: #dc3545;
+    }
+
+    .modal-body {
+        padding: 24px;
+    }
+
+    .modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid var(--gray-medium);
+    }
+
+    .btn-primary {
+        background: var(--light-green);
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-green);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--gray-dark);
+    }
+
+    .empty-state svg {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="chat-container">
+        <!-- Enhanced chat header -->
+        <div class="chat-header">
+            {% if expert.profile_picture %}
+                <img src="{{ expert.profile_picture }}" alt="{{ expert.first_name }}" class="expert-avatar">
+            {% else %}
+                <div class="expert-avatar" style="display: flex; align-items: center; justify-content: center; background: var(--light-green); color: white; font-size: 1.5rem; font-weight: bold;">
+                    {{ expert.first_name|first }}{{ expert.last_name|first }}
+                </div>
+            {% endif %}
+            <div class="expert-info">
+                <h4>{{ expert.first_name }} {{ expert.last_name }}</h4>
+                <p>Eksperto sa Agrikultura</p>
+            </div>
+        </div>
+
+        <!-- Enhanced chat box -->
+        <div class="chat-box" id="chatBox">
+            {% for message in messages %}
+                <div class="message-wrapper {% if message.sender_farmer.id == request.session.user_id %}sent{% else %}received{% endif %}">
+                    <div class="message-bubble {% if message.sender_farmer.id == request.session.user_id %}sent{% else %}received{% endif %}">
+                        <span class="message-sender">
+                            {% if message.sender_farmer.id == request.session.user_id %}
+                                Ikaw
+                            {% else %}
+                                {{ expert.first_name }}
+                            {% endif %}
+                        </span>
+                        <p class="message-text" id="message-text-{{ message.id }}">{{ message.message_text }}</p>
+
+                        {% if message.image %}
+                            <img src="{{ message.image }}" alt="Sent Image" class="message-image">
+                        {% endif %}
+
+                        <small class="message-timestamp">{{ message.timestamp|date:"M d, Y - h:i A" }}</small>
+
+                        <!-- Three-dot menu for sent messages -->
+                        {% if message.sender_farmer.id == request.session.user_id %}
+                            <div class="message-options dropdown">
+                                <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    ⋮
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="editMessage({{ message.id }}); return false;">
+                                        <i class="bi bi-pencil"></i> Baguhin
+                                    </a></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteMessage({{ message.id }}); return false;">
+                                        <i class="bi bi-trash"></i> Burahin
+                                    </a></li>
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <p>Wala pang mensahe. Magsimula ng pag-uusap!</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Enhanced input area -->
+        <div class="chat-input-area">
+            <form action="{% url 'send_message' expert.id %}" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="input-group">
+                    <textarea name="message_text" class="form-control" rows="1" placeholder="I-type ang iyong mensahe..." required></textarea>
+                    
+                    <div class="file-input-wrapper">
+                        <input type="file" name="image" id="imageInput" accept="image/*">
+                        <label for="imageInput" class="file-input-label" title="Mag-attach ng larawan">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                                <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                            </svg>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="send-button" title="Ipadala">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z"/>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Edit Message Modal -->
+<div class="modal fade" id="editMessageModal" tabindex="-1" aria-labelledby="editMessageLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMessageLabel">I-edit ang Mensahe</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMessageForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editMessageId">
+                    <div class="mb-3">
+                        <label for="editMessageText" class="form-label fw-bold">Bagong Mensahe</label>
+                        <textarea class="form-control" id="editMessageText" rows="4" placeholder="I-type ang bagong mensahe..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kanselahin</button>
+                <button type="button" class="btn btn-primary" onclick="saveMessage()">I-save ang Pagbabago</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Delete Message Modal -->
+<div class="modal fade" id="deleteMessageModal" tabindex="-1" aria-labelledby="deleteMessageLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger">
+                <h5 class="modal-title" id="deleteMessageLabel">Kumpirmahin ang Pag-delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Sigurado ka bang gusto mong burahin ang mensaheng ito? Hindi na ito maibabalik.</p>
+                <input type="hidden" id="deleteMessageId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hindi</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">Oo, Burahin</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatBox = document.getElementById('chatBox');
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    function editMessage(messageId) {
+        let updatedText = document.getElementById(`message-text-${messageId}`).innerText;
+        document.getElementById("editMessageId").value = messageId;
+        document.getElementById("editMessageText").value = updatedText;
+        new bootstrap.Modal(document.getElementById('editMessageModal')).show();
+    }
+
+    function saveMessage() {
+        let messageId = document.getElementById("editMessageId").value;
+        let newText = document.getElementById("editMessageText").value;
+        
+        fetch(`/edit_message/${messageId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ message_text: newText })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById(`message-text-${messageId}`).innerText = newText;
+                bootstrap.Modal.getInstance(document.getElementById('editMessageModal')).hide();
+            } else {
+                alert("Hindi ma-update ang mensahe.");
+            }
+        });
+    }
+
+    function deleteMessage(messageId) {
+        document.getElementById("deleteMessageId").value = messageId;
+        new bootstrap.Modal(document.getElementById('deleteMessageModal')).show();
+    }
+
+    function confirmDelete() {
+        let messageId = document.getElementById("deleteMessageId").value;
+
+        fetch(`/delete_message/${messageId}/`, {
+            method: "DELETE",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const messageElement = document.getElementById(`message-text-${messageId}`).closest('.message-wrapper');
+                messageElement.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => messageElement.remove(), 300);
+                bootstrap.Modal.getInstance(document.getElementById('deleteMessageModal')).hide();
+            } else {
+                alert("Hindi mabura ang mensahe.");
+            }
+        });
+    }
+
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+
+{% endblock %}
+
+
+
+{% comment %} {% extends 'farmer/base_farmer.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Pag-uusap Kay {{ expert.first_name }} {{ expert.last_name }}</h2>
+    <div class="chat-box border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+        {% for message in messages %}
+            <div class="d-flex {% if message.sender_farmer.id == request.session.user_id %}justify-content-end{% else %}justify-content-start{% endif %}">
+                <div class="message-box p-2 rounded {% if message.sender_farmer.id == request.session.user_id %}bg-success text-white{% else %}bg-light{% endif %}" style="max-width: 75%; position: relative;">
+                    <strong>
+                        {% if message.sender_farmer.id == request.session.user_id %}
+                            Ikaw:
+                        {% else %}
+                            {{ expert.first_name }}:
+                        {% endif %}
+                    </strong>
+                    <p id="message-text-{{ message.id }}">{{ message.message_text }}</p>
+
+                    {% if message.image %}
+                        <img src="{{ message.image }}" alt="Sent Image" class="img-fluid mt-2 rounded" style="max-width: 100%;">
+                    {% endif %}
+
+                    <!-- Three-dot menu for options -->
+                    {% if message.sender_farmer.id == request.session.user_id %}
+                        <div class="dropdown" style="position: absolute; top: 5px; right: 5px;">
+                            <button class="btn btn-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                &#x22EE;
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="editMessage({{ message.id }}, '{{ message.message_text }}')">Baguhin</a></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteMessage({{ message.id }})">Burahin</a></li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <br>
+        {% empty %}
+        <p>Wala pang mensahe</p>
+        {% endfor %}
+    </div>
+
+    <!-- Edit Message Modal (Now in Tagalog) -->
+    <div class="modal fade" id="editMessageModal" tabindex="-1" aria-labelledby="editMessageLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editMessageLabel">I-edit ang Mensahe</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editMessageForm">
+                        {% csrf_token %}
+                        <input type="hidden" id="editMessageId">
+                        <div class="mb-3">
+                            <label for="editMessageText" class="form-label">Baguhin ang mensahe</label>
+                            <textarea class="form-control" id="editMessageText" rows="3"></textarea>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="saveMessage()">I-save ang Pagbabago</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Message Modal (New Feature) -->
+    <div class="modal fade" id="deleteMessageModal" tabindex="-1" aria-labelledby="deleteMessageLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteMessageLabel">Kumpirmahin ang Pag-delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Sigurado ka bang gusto mong burahin ang mensaheng ito?
+                    <input type="hidden" id="deleteMessageId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hindi</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmDelete()">Oo, Burahin</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form action="{% url 'send_message' expert.id %}" method="POST" class="mt-3" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="input-group">
+            <input type="text" name="message_text" class="form-control" placeholder="I-type ang iyong mensahe">
+            <input type="file" name="image" class="form-control">
+            <button type="submit" class="btn btn-success">Send</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function editMessage(messageId) {
+        // Fetch the latest message text from the DOM
+        let updatedText = document.getElementById(`message-text-${messageId}`).innerText;
+    
+        // Set the values in the modal
+        document.getElementById("editMessageId").value = messageId;
+        document.getElementById("editMessageText").value = updatedText; // Use updated text
+    
+        // Show the modal
+        new bootstrap.Modal(document.getElementById('editMessageModal')).show();
+    }
+    
+    
+    function saveMessage() {
+        let messageId = document.getElementById("editMessageId").value;
+        let newText = document.getElementById("editMessageText").value;
+        
+        fetch(`/edit_message/${messageId}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ message_text: newText })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById(`message-text-${messageId}`).innerText = newText;
+                bootstrap.Modal.getInstance(document.getElementById('editMessageModal')).hide();
+            } else {
+                alert("Hindi ma-update ang mensahe.");
+            }
+        });
+    }
+    
+    function deleteMessage(messageId) {
+        document.getElementById("deleteMessageId").value = messageId;
+        new bootstrap.Modal(document.getElementById('deleteMessageModal')).show();
+    }
+    
+    function confirmDelete() {
+        let messageId = document.getElementById("deleteMessageId").value;
+    
+        fetch(`/delete_message/${messageId}/`, {
+            method: "DELETE",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById(`message-text-${messageId}`).parentElement.remove();
+                bootstrap.Modal.getInstance(document.getElementById('deleteMessageModal')).hide();
+            } else {
+                alert("Hindi mabura ang mensahe.");
+            }
+        });
+    }
+    </script>
+
+{% endblock %} {% endcomment %}

@@ -1,0 +1,444 @@
+{% extends 'farmer/base_farmer.html' %}
+{% block content %}
+<div class="container mt-4">
+    <!-- Back Button -->
+    <a href="{% url 'farmer_experts' %}" class="btn btn-outline-secondary mb-3">
+        <i class="fas fa-arrow-left me-2"></i>Back to Experts
+    </a>
+
+    <div class="row">
+        <!-- Main Post Content -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <!-- Expert Header -->
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="position-relative">
+                            <img src="{{ post.expert.profile_picture|default:'/static/default-profile.png' }}" 
+                                 class="post-expert-profile rounded-circle me-3">
+                            <span class="position-absolute top-0 start-75 translate-middle p-1 bg-success border border-light rounded-circle">
+                                <i class="fas fa-check text-white"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ post.expert.first_name }} {{ post.expert.middle_name|default:'' }} {{ post.expert.last_name }}</h5>
+                            <p class="text-muted mb-1">
+                                <i class="fas fa-user-tag me-1"></i>{{ post.expert.position|default:"Agricultural Expert" }}
+                            </p>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-map-marker-alt me-1"></i>{{ post.expert.barangay }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Post Meta -->
+                    <div class="mb-3">
+                        <span class="badge bg-light text-dark me-2">
+                            <i class="far fa-clock me-1"></i>{{ post.created_at|date:"M d, Y" }}
+                        </span>
+                        <span class="badge bg-light text-dark">
+                            <i class="far fa-clock me-1"></i>{{ post.created_at|time:"h:i A" }}
+                        </span>
+                    </div>
+
+                    <!-- Post Title -->
+                    <h2 class="fw-bold mb-3">{{ post.title }}</h2>
+
+                    <!-- Post Content -->
+                    <div class="post-content mb-4">
+                        {{ post.caption|linebreaksbr }}
+                    </div>
+
+                    <!-- Post Images -->
+                    {% if images %}
+                        {% if images|length == 1 %}
+                            <div class="mb-4">
+                                <img src="{{ images.0.image_url }}" 
+                                     class="img-fluid rounded single-image" 
+                                     alt="Post Image"
+                                     data-bs-toggle="modal" 
+                                     data-bs-target="#imageModal">
+                            </div>
+                        {% else %}
+                            <div class="row g-3 mb-4">
+                                {% for image in images %}
+                                    <div class="col-md-6">
+                                        <img src="{{ image.image_url }}" 
+                                             class="img-fluid rounded multi-image" 
+                                             alt="Post Image {{ forloop.counter }}"
+                                             data-bs-toggle="modal" 
+                                             data-bs-target="#imageModal{{ forloop.counter }}">
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comments me-2"></i>Mga Komento
+                        <span class="badge bg-primary ms-2">{{ post_analytics.total_comments }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Solution Comment -->
+                    {% if solution_comment %}
+                    <div class="solution-comment mb-4 p-3 border border-success border-3 rounded bg-success bg-opacity-10">
+                        <div class="d-flex align-items-start mb-2">
+                            <img src="{{ solution_comment.expert.profile_picture|default:'/static/default-profile.png' }}" 
+                                 class="rounded-circle me-2 solution-commenter-img">
+                            <div>
+                                <div class="d-flex align-items-center">
+                                    <h6 class="mb-0">{{ solution_comment.expert.first_name }} {{ solution_comment.expert.last_name }}</h6>
+                                    <span class="badge bg-success ms-2">
+                                        <i class="fas fa-check me-1"></i>Solution
+                                    </span>
+                                </div>
+                                <small class="text-muted">
+                                    <i class="far fa-clock me-1"></i>{{ solution_comment.created_at|date:"M d, Y h:i A" }}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="mt-2 ps-4">
+                            <p class="mb-0">{{ solution_comment.content|linebreaksbr }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Other Comments -->
+                    {% for comment in other_comments %}
+                    <div class="regular-comment mb-3 p-3 border rounded">
+                        <div class="d-flex align-items-start">
+                            <img src="{{ comment.expert.profile_picture|default:'/static/default-profile.png' }}" 
+                                 class="rounded-circle me-2 commenter-img">
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">{{ comment.expert.first_name }} {{ comment.expert.last_name }}</h6>
+                                    <small class="text-muted">
+                                        <i class="far fa-clock me-1"></i>{{ comment.created_at|date:"M d, Y h:i A" }}
+                                    </small>
+                                </div>
+                                <div class="mt-2">
+                                    <p class="mb-0">{{ comment.content|linebreaksbr }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-comments fa-3x text-secondary mb-3"></i>
+                        <p class="text-muted mb-0">Wala pang komento sa post na ito.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar with Analytics & Expert Info -->
+        <div class="col-lg-4">
+            <!-- Post Analytics Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Post Analytics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="p-3 bg-primary bg-opacity-10 rounded">
+                                <h3 class="text-primary mb-1">{{ post_analytics.total_comments }}</h3>
+                                <small class="text-muted">Total Comments</small>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="p-3 bg-success bg-opacity-10 rounded">
+                                <h3 class="text-success mb-1">{{ post_analytics.solution_comments }}</h3>
+                                <small class="text-muted">Solutions</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-info bg-opacity-10 rounded">
+                                <h3 class="text-info mb-1">{{ post_analytics.days_since_post }}</h3>
+                                <small class="text-muted">Days Since Posted</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-warning bg-opacity-10 rounded">
+                                <h3 class="text-warning mb-1">{{ post_analytics.engagement_rate }}%</h3>
+                                <small class="text-muted">Engagement Rate</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expert Information Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-user-check me-2"></i>About the Expert</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <img src="{{ post.expert.profile_picture|default:'/static/default-profile.png' }}" 
+                             class="rounded-circle mb-2 expert-sidebar-profile">
+                        <h5 class="mb-1">{{ post.expert.first_name }} {{ post.expert.last_name }}</h5>
+                        <p class="text-muted mb-2">{{ post.expert.position|default:"Agricultural Expert" }}</p>
+                        <span class="badge bg-success">
+                            <i class="fas fa-check-circle me-1"></i>Verified Expert
+                        </span>
+                    </div>
+                    <div class="border-top pt-3">
+                        <div class="mb-2">
+                            <small class="text-muted"><i class="fas fa-envelope me-2"></i>Email</small>
+                            <p class="mb-0">{{ post.expert.email }}</p>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted"><i class="fas fa-phone me-2"></i>Phone</small>
+                            <p class="mb-0">{{ post.expert.phone_number }}</p>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted"><i class="fas fa-map-marker-alt me-2"></i>Location</small>
+                            <p class="mb-0">{{ post.expert.barangay }}</p>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted"><i class="fas fa-id-card me-2"></i>License Number</small>
+                            <p class="mb-0">{{ post.expert.license_number }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'view_expertfromfarmer' post.expert.id %}" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="fas fa-user-circle me-2"></i>View Full Profile
+                        </a>
+                        {% if post.expert.id in existing_chat_experts %}
+                        <a href="{% url 'chat_detail' post.expert.id %}" class="btn btn-success w-100">
+                            <i class="fas fa-comments me-2"></i>Message Expert
+                        </a>
+                        {% else %}
+                        <a href="{% url 'send_message' post.expert.id %}" class="btn btn-success w-100">
+                            <i class="fas fa-comment-medical me-2"></i>Start Consultation
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Related Posts -->
+            {% if related_posts %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-newspaper me-2"></i>More from this Expert</h6>
+                </div>
+                <div class="card-body">
+                    {% for related in related_posts %}
+                    <div class="mb-3 pb-3 border-bottom">
+                        <h6 class="mb-1">
+                            <a href="{% url 'view_post' related.id %}" class="text-decoration-none">
+                                {{ related.title|truncatechars:50 }}
+                            </a>
+                        </h6>
+                        <small class="text-muted">
+                            <i class="far fa-clock me-1"></i>{{ related.created_at|date:"M d, Y" }}
+                        </small>
+                        {% if related.comment_set.filter.is_solution %}
+                        <span class="badge bg-success ms-2">Solved</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+{% if images %}
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-body p-0">
+                <img src="{{ images.0.image_url }}" class="img-fluid w-100" alt="Full Image">
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Multiple Image Modals -->
+{% for image in images %}
+{% if forloop.counter > 1 %}
+<div class="modal fade" id="imageModal{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-body p-0">
+                <img src="{{ image.image_url }}" class="img-fluid w-100" alt="Full Image {{ forloop.counter }}">
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<style>
+/* Profile Images */
+.post-expert-profile {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border: 3px solid #28a745;
+}
+
+.expert-sidebar-profile {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border: 4px solid #28a745;
+}
+
+.commenter-img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+}
+
+.solution-commenter-img {
+    width: 45px;
+    height: 45px;
+    object-fit: cover;
+    border: 2px solid #28a745;
+}
+
+/* Images */
+.single-image {
+    max-height: 500px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.single-image:hover {
+    transform: scale(1.01);
+}
+
+.multi-image {
+    height: 200px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.multi-image:hover {
+    transform: scale(1.05);
+}
+
+/* Comments */
+.solution-comment {
+    position: relative;
+}
+
+.solution-comment::before {
+    content: '🌟';
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 20px;
+}
+
+.regular-comment {
+    background-color: #f8f9fa;
+}
+
+/* Post Content */
+.post-content {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #333;
+}
+
+/* Analytics Boxes */
+.bg-primary.bg-opacity-10 {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.bg-success.bg-opacity-10 {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+.bg-info.bg-opacity-10 {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+
+.bg-warning.bg-opacity-10 {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .post-expert-profile {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .expert-sidebar-profile {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .single-image {
+        max-height: 300px;
+    }
+    
+    .multi-image {
+        height: 150px;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize image modals for clicking
+    document.querySelectorAll('.single-image, .multi-image').forEach(img => {
+        img.style.cursor = 'pointer';
+    });
+    
+    // Add smooth scroll for better UX
+    const smoothScroll = (target, duration) => {
+        const targetPosition = target.offsetTop;
+        const startPosition = window.pageYOffset;
+        const distance = targetPosition - startPosition;
+        let startTime = null;
+        
+        const animation = (currentTime) => {
+            if (startTime === null) startTime = currentTime;
+            const timeElapsed = currentTime - startTime;
+            const run = ease(timeElapsed, startPosition, distance, duration);
+            window.scrollTo(0, run);
+            if (timeElapsed < duration) requestAnimationFrame(animation);
+        };
+        
+        const ease = (t, b, c, d) => {
+            t /= d / 2;
+            if (t < 1) return c / 2 * t * t + b;
+            t--;
+            return -c / 2 * (t * (t - 2) - 1) + b;
+        };
+        
+        requestAnimationFrame(animation);
+    };
+    
+    // Highlight solution comment when page loads
+    const solutionComment = document.querySelector('.solution-comment');
+    if (solutionComment) {
+        setTimeout(() => {
+            solutionComment.style.boxShadow = '0 0 20px rgba(25, 135, 84, 0.3)';
+            setTimeout(() => {
+                solutionComment.style.boxShadow = 'none';
+            }, 2000);
+        }, 500);
+    }
+});
+</script>
+{% endblock %}

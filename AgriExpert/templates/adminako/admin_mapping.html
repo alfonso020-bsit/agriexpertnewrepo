@@ -1,0 +1,745 @@
+{% extends 'adminako/base_admin.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+:root {
+    --primary-green: #2d6a4f;
+    --primary-green-light: #40916c;
+    --primary-green-lighter: #52b788;
+    --primary-green-dark: #1b4332;
+    --bg-light: #f8f9fa;
+    --bg-green-light: #d8f3dc;
+}
+
+.map-container {
+    height: 70vh;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.controls-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+}
+
+.stats-card {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    color: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.filter-section {
+    background: var(--bg-green-light);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.detection-popup {
+    max-width: 300px;
+}
+
+.detection-popup img {
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.popup-title {
+    font-weight: 700;
+    color: var(--primary-green-dark);
+    margin-bottom: 0.5rem;
+}
+
+.popup-detail {
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.legend {
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 2px solid white;
+}
+
+.loading-spinner {
+    display: none;
+    text-align: center;
+    padding: 2rem;
+}
+
+.refresh-btn {
+    background: var(--primary-green);
+    border: none;
+    color: white;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+    background: var(--primary-green-dark);
+    transform: translateY(-1px);
+}
+
+.realtime-toggle {
+    background: #28a745;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.realtime-toggle.off {
+    background: #dc3545;
+}
+
+/* Custom marker styles */
+.custom-marker {
+    width: 30px;
+    height: 30px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.marker-disease {
+    background: #dc3545;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.marker-pest {
+    background: #ffc107;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.marker-unknown {
+    background: #6c757d;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.marker-content {
+    transform: rotate(45deg);
+}
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>Real-Time Detection Mapping</h4>
+                        <div class="d-flex gap-2">
+                            <button id="realtimeToggle" class="realtime-toggle">
+                                <i class="fas fa-satellite-dish me-1"></i> Real-Time: ON
+                            </button>
+                            <button id="refreshMap" class="refresh-btn">
+                                <i class="fas fa-sync-alt me-1"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Messages -->
+                    {% if messages %}
+                    <div class="mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Stats Overview -->
+                    <div class="row mb-4 g-3">
+                        <div class="col-md-2 col-sm-6">
+                            <div class="stats-card text-center">
+                                <h5 class="mb-2"><i class="fas fa-bug"></i> Total Detections</h5>
+                                <h2 class="mb-1" id="totalDetections">0</h2>
+                                <small>All time</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-sm-6">
+                            <div class="stats-card text-center">
+                                <h5 class="mb-2"><i class="fas fa-virus"></i> Disease Cases</h5>
+                                <h2 class="mb-1" id="diseaseCount">0</h2>
+                                <small>Confirmed</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-sm-6">
+                            <div class="stats-card text-center">
+                                <h5 class="mb-2"><i class="fas fa-spider"></i> Pest Cases</h5>
+                                <h2 class="mb-1" id="pestCount">0</h2>
+                                <small>Confirmed</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-sm-6">
+                            <div class="stats-card text-center">
+                                <h5 class="mb-2"><i class="fas fa-question-circle"></i> Unknown</h5>
+                                <h2 class="mb-1" id="unknownCount">0</h2>
+                                <small>Unclassified</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-sm-12">
+                            <div class="stats-card text-center">
+                                <h5 class="mb-2"><i class="fas fa-map-marker-alt"></i> With Location</h5>
+                                <h2 class="mb-1" id="withLocationCount">0</h2>
+                                <small>Geotagged</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="filter-section">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Date Range</label>
+                                <div class="input-group">
+                                    <input type="date" id="startDate" class="form-control">
+                                    <span class="input-group-text">to</span>
+                                    <input type="date" id="endDate" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Detection Type</label>
+                                <select id="detectionType" class="form-select">
+                                    <option value="all">All Types</option>
+                                    <option value="disease">Disease Only</option>
+                                    <option value="pest">Pest Only</option>
+                                    <option value="unknown">Unknown Only</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">Confidence</label>
+                                <select id="confidenceFilter" class="form-select">
+                                    <option value="all">All Confidence</option>
+                                    <option value="high">High (≥80%)</option>
+                                    <option value="medium">Medium (60-79%)</option>
+                                    <option value="low">Low (<60%)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Farmer</label>
+                                <select id="farmerFilter" class="form-select">
+                                    <option value="all">All Farmers</option>
+                                    <!-- Farmers will be populated by JavaScript -->
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-bold">&nbsp;</label>
+                                <button id="applyFilters" class="btn btn-success w-100">
+                                    <i class="fas fa-filter me-1"></i> Apply
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map Container -->
+                    <div class="map-container" id="map"></div>
+
+                    <!-- Loading Spinner -->
+                    <div id="loadingSpinner" class="loading-spinner">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading detection data...</p>
+                    </div>
+
+                    <!-- Legend -->
+                    <!-- Legend -->
+                    <div class="legend mt-3">
+                        <h6 class="mb-2"><i class="fas fa-map-pin me-1"></i>Map Legend</h6>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #dc3545;"></div>
+                            <span>Sakit (Disease)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #ffc107;"></div>
+                            <span>Peste (Pest)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #6c757d;"></div>
+                            <span>Unknown</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #28a745;"></div>
+                            <span>High Confidence (≥80%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detection Details Modal -->
+<div class="modal fade" id="detectionDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-search me-2"></i>Detection Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detectionDetailsContent">
+                <!-- Content will be loaded by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Leaflet CSS and JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// Global variables
+let map;
+let detectionMarkers = [];
+let realtimeInterval = null;
+let isRealtimeEnabled = true;
+
+// Victoria, Oriental Mindoro coordinates (approximate center)
+const VICTORIA_COORDS = [13.1772, 121.2773];
+
+// Disease and Pest class definitions
+const DISEASE_CLASSES = [
+    'Bacterial Leaf Blight', 'Bacterial Leaf Streak', 'Brown Spot',
+    'Dead Heart Pest Attack Symptom', 'Grain Rot', 'Healthy Grain',
+    'Healthy Leaf', 'Leaf scald', 'Rice Blast', 'Rice False Smut',
+    'Rice Stripe Virus', 'Sheath Blight', 'Stem Rot', 'Tungro Virus', 'Unknown'
+];
+
+const PEST_CLASSES = [
+    'Beetle', 'Brown Plant Hopper', 'Grass Hopper', 'Paddy Stem Maggot Fly',
+    'Rice Gall Midge', 'Rice Leaf Caterpillar', 'Rice Leaf Hopper',
+    'Rice Leaf Roller', 'Rice Skipper', 'Rice Stem Borer Adult',
+    'Rice Stem Borer Larva', 'Rice Water Weevil', 'Thrips', 'Unknown'
+];
+
+// Helper function to determine if detection is Sakit (Disease) or Peste (Pest)
+function getDetectionType(detection) {
+    const predictedClass = detection.predicted_class;
+    
+    if (DISEASE_CLASSES.includes(predictedClass)) {
+        return 'disease';  // Red pin
+    } else if (PEST_CLASSES.includes(predictedClass)) {
+        return 'pest';  // Yellow pin
+    } else {
+        return 'unknown'; // Gray pin (for any other class)
+    }
+}
+
+// Initialize the map
+function initMap() {
+    map = L.map('map').setView(VICTORIA_COORDS, 12);
+    
+    // Add OpenStreetMap tiles (FREE)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18
+    }).addTo(map);
+    
+    // Load initial data
+    loadDetectionData();
+    
+    // Set up real-time updates
+    startRealtimeUpdates();
+}
+
+// Create custom marker icon
+function createCustomMarker(detection) {
+    const detectionType = getDetectionType(detection);
+    const confidence = parseFloat(detection.confidence) || 0;
+    const isHighConfidence = confidence >= 80;
+    
+    let className;
+    
+    switch(detectionType) {
+        case 'disease':
+            className = 'marker-disease';
+            break;
+        case 'pest':
+            className = 'marker-pest';
+            break;
+        case 'unknown':
+            className = 'marker-unknown';
+            break;
+        default:
+            className = 'marker-unknown';
+    }
+    
+    return L.divIcon({
+        className: 'custom-marker ' + className,
+        html: `<div class="marker-content">${isHighConfidence ? '✓' : '!'}</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
+    });
+}
+
+// Load detection data from server
+async function loadDetectionData(filters = {}) {
+    showLoading(true);
+    
+    try {
+        // Build query string from filters
+        const params = new URLSearchParams();
+        if (filters.startDate) params.append('start_date', filters.startDate);
+        if (filters.endDate) params.append('end_date', filters.endDate);
+        if (filters.detectionType && filters.detectionType !== 'all') {
+            params.append('type', filters.detectionType);
+        }
+        if (filters.confidence && filters.confidence !== 'all') {
+            params.append('confidence', filters.confidence);
+        }
+        if (filters.farmer && filters.farmer !== 'all') {
+            params.append('farmer_id', filters.farmer);
+        }
+        
+        const response = await fetch(`/api/detections/map/?${params}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        updateMapWithDetections(data.detections);
+        updateStats(data.stats);
+        populateFarmerFilter(data.farmers);
+        
+    } catch (error) {
+        console.error('Error loading detection data:', error);
+        alert('Error loading detection data: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Update map with detection markers
+function updateMapWithDetections(detections) {
+    // Clear existing markers
+    detectionMarkers.forEach(marker => map.removeLayer(marker));
+    detectionMarkers = [];
+    
+    // Add new markers
+    detections.forEach(detection => {
+        if (detection.latitude && detection.longitude) {
+            const marker = L.marker([parseFloat(detection.latitude), parseFloat(detection.longitude)], {
+                icon: createCustomMarker(detection)
+            }).addTo(map);
+            
+            // Add popup
+            marker.bindPopup(createPopupContent(detection));
+            
+            // Add click event for details modal
+            marker.on('click', function() {
+                showDetectionDetails(detection);
+            });
+            
+            detectionMarkers.push(marker);
+        }
+    });
+    
+    // Adjust map bounds to show all markers if there are any
+    if (detectionMarkers.length > 0) {
+        const group = new L.featureGroup(detectionMarkers);
+        map.fitBounds(group.getBounds().pad(0.1));
+    } else {
+        // If no markers, reset to Victoria view
+        map.setView(VICTORIA_COORDS, 12);
+    }
+}
+
+// Create popup content for markers
+function createPopupContent(detection) {
+    const detectionType = getDetectionType(detection);
+    const confidence = parseFloat(detection.confidence) || 0;
+    
+    let iconClass, typeText;
+    switch(detectionType) {
+        case 'disease':
+            iconClass = 'fa-virus';
+            typeText = 'Sakit (Disease)';
+            break;
+        case 'pest':
+            iconClass = 'fa-spider';
+            typeText = 'Peste (Pest)';
+            break;
+        case 'unknown':
+            iconClass = 'fa-question-circle';
+            typeText = 'Unknown';
+            break;
+        default:
+            iconClass = 'fa-question-circle';
+            typeText = 'Unknown';
+    }
+    
+    return `
+        <div class="detection-popup">
+            <div class="popup-title">
+                <i class="fas ${iconClass} me-1"></i>
+                ${detection.predicted_class}
+            </div>
+            ${detection.image_url ? `<img src="${detection.image_url}" style="width: 100%; height: 120px; object-fit: cover;" alt="Detection">` : ''}
+            <div class="popup-detail">
+                <strong>Type:</strong> ${typeText}
+            </div>
+            <div class="popup-detail">
+                <strong>Confidence:</strong> ${confidence.toFixed(1)}%
+            </div>
+            <div class="popup-detail">
+                <strong>Farmer:</strong> ${detection.farmer_name || 'Unknown'}
+            </div>
+            <div class="popup-detail">
+                <strong>Date:</strong> ${new Date(detection.uploaded_at).toLocaleDateString()}
+            </div>
+            <button class="btn btn-sm btn-success w-100 mt-2" onclick="showDetectionDetails(${JSON.stringify(detection).replace(/"/g, '&quot;')})">
+                View Details
+            </button>
+        </div>
+    `;
+}
+
+// Show detection details in modal
+function showDetectionDetails(detection) {
+    const modalContent = document.getElementById('detectionDetailsContent');
+    const detectionType = getDetectionType(detection);
+    
+    let alertClass, iconClass, typeText;
+    switch(detectionType) {
+        case 'disease':
+            alertClass = 'alert-danger';
+            iconClass = 'fa-virus';
+            typeText = 'SAKIT (DISEASE)';
+            break;
+        case 'pest':
+            alertClass = 'alert-warning';
+            iconClass = 'fa-spider';
+            typeText = 'PESTE (PEST)';
+            break;
+        case 'unknown':
+            alertClass = 'alert-secondary';
+            iconClass = 'fa-question-circle';
+            typeText = 'UNKNOWN';
+            break;
+        default:
+            alertClass = 'alert-secondary';
+            iconClass = 'fa-question-circle';
+            typeText = 'UNKNOWN';
+    }
+    
+    modalContent.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <strong>Detection Image:</strong>
+                    ${detection.image_url ? 
+                        `<img src="${detection.image_url}" class="img-fluid rounded mt-2" alt="Detection" style="max-height: 200px;">` : 
+                        '<p class="text-muted mt-2">No image available</p>'
+                    }
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Detection Type:</strong>
+                    <div class="alert ${alertClass} mt-1">
+                        <i class="fas ${iconClass} me-1"></i>
+                        ${typeText}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Predicted Classification:</strong>
+                    <p class="mt-1 fw-bold">${detection.predicted_class}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Confidence Level:</strong>
+                    <div class="progress mt-1" style="height: 25px;">
+                        <div class="progress-bar ${getConfidenceColor(detection.confidence)}" 
+                             role="progressbar" 
+                             style="width: ${detection.confidence}%">
+                            ${parseFloat(detection.confidence).toFixed(1)}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <strong>Farmer Information:</strong>
+                    <p class="mt-1 mb-1">${detection.farmer_name || 'Unknown'}</p>
+                    <small class="text-muted">${detection.farmer_barangay ? `Barangay: ${detection.farmer_barangay}` : ''}</small>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Detection Date:</strong>
+                    <p class="mt-1">${new Date(detection.uploaded_at).toLocaleString()}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Location:</strong>
+                    ${detection.latitude && detection.longitude ? 
+                        `<p class="mt-1 mb-1">Lat: ${parseFloat(detection.latitude).toFixed(4)}</p>
+                         <p class="mb-1">Lng: ${parseFloat(detection.longitude).toFixed(4)}</p>
+                         <small class="text-muted">Accuracy: ${detection.location_accuracy ? detection.location_accuracy + 'm' : 'Unknown'}</small>` :
+                        '<p class="text-muted mt-1">No location data</p>'
+                    }
+                </div>
+                
+                ${detection.library ? `
+                <div class="mb-3">
+                    <strong>Library Information:</strong>
+                    <div class="mt-1">
+                        <p><strong>Topic:</strong> ${detection.library.paksa}</p>
+                        <p><strong>Description:</strong> ${detection.library.deskripsyon.substring(0, 100)}...</p>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('detectionDetailsModal'));
+    modal.show();
+}
+
+// Update statistics
+function updateStats(stats) {
+    document.getElementById('totalDetections').textContent = stats.total_detections || 0;
+    document.getElementById('diseaseCount').textContent = stats.disease_count || 0;
+    document.getElementById('pestCount').textContent = stats.pest_count || 0;
+    document.getElementById('unknownCount').textContent = stats.unknown_count || 0;
+    document.getElementById('withLocationCount').textContent = stats.with_location_count || 0;
+}
+
+// Populate farmer filter
+function populateFarmerFilter(farmers) {
+    const select = document.getElementById('farmerFilter');
+    select.innerHTML = '<option value="all">All Farmers</option>';
+    
+    farmers.forEach(farmer => {
+        const option = document.createElement('option');
+        option.value = farmer.id;
+        option.textContent = `${farmer.first_name} ${farmer.last_name} (${farmer.barangay})`;
+        select.appendChild(option);
+    });
+}
+
+// Get confidence color for progress bar
+function getConfidenceColor(confidence) {
+    const conf = parseFloat(confidence);
+    if (conf >= 80) return 'bg-success';
+    if (conf >= 60) return 'bg-warning';
+    return 'bg-danger';
+}
+
+// Show/hide loading spinner
+function showLoading(show) {
+    document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+}
+
+// Start real-time updates
+function startRealtimeUpdates() {
+    if (realtimeInterval) {
+        clearInterval(realtimeInterval);
+    }
+    
+    realtimeInterval = setInterval(() => {
+        if (isRealtimeEnabled) {
+            loadDetectionData(getCurrentFilters());
+        }
+    }, 30000); // Update every 30 seconds
+}
+
+// Get current filter values
+function getCurrentFilters() {
+    return {
+        startDate: document.getElementById('startDate').value,
+        endDate: document.getElementById('endDate').value,
+        detectionType: document.getElementById('detectionType').value,
+        confidence: document.getElementById('confidenceFilter').value,
+        farmer: document.getElementById('farmerFilter').value
+    };
+}
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', function() {
+    initMap();
+    
+    // Apply filters
+    document.getElementById('applyFilters').addEventListener('click', function() {
+        loadDetectionData(getCurrentFilters());
+    });
+    
+    // Refresh map
+    document.getElementById('refreshMap').addEventListener('click', function() {
+        loadDetectionData(getCurrentFilters());
+    });
+    
+    // Real-time toggle
+    document.getElementById('realtimeToggle').addEventListener('click', function() {
+        isRealtimeEnabled = !isRealtimeEnabled;
+        this.innerHTML = isRealtimeEnabled ? 
+            '<i class="fas fa-satellite-dish me-1"></i> Real-Time: ON' :
+            '<i class="fas fa-satellite-dish me-1"></i> Real-Time: OFF';
+        this.classList.toggle('off', !isRealtimeEnabled);
+        
+        if (isRealtimeEnabled) {
+            startRealtimeUpdates();
+        } else if (realtimeInterval) {
+            clearInterval(realtimeInterval);
+        }
+    });
+    
+    // Set default date to last 30 days
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    
+    document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+    document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+});
+
+// Clean up on page unload
+window.addEventListener('beforeunload', function() {
+    if (realtimeInterval) {
+        clearInterval(realtimeInterval);
+    }
+});
+</script>
+{% endblock %}

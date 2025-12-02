@@ -1,0 +1,402 @@
+{% extends 'expert/base_expert.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Back Button -->
+    <div class="mb-3">
+        <a href="{% url 'expert_farmers' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Farmers
+        </a>
+    </div>
+
+    <!-- Farmer Profile Header -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-3 text-center">
+                    {% if farmer.profile_picture %}
+                        <img src="{{ farmer.profile_picture }}" class="farmer-profile-large rounded-circle mb-3" alt="Farmer Profile">
+                    {% else %}
+                        <div class="farmer-profile-large rounded-circle mb-3 d-flex align-items-center justify-content-center bg-light">
+                            <i class="fas fa-user fa-3x text-muted"></i>
+                        </div>
+                    {% endif %}
+                    <div class="farmer-status">
+                        <span class="badge bg-success fs-6 px-3 py-2">
+                            <i class="fas fa-seedling me-2"></i>{{ farmer.role }}
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-9">
+                    <div class="farmer-info">
+                        <h2 class="mb-2">
+                            {{ farmer.first_name }}
+                            {% if farmer.middle_name %}{{ farmer.middle_name }} {% endif %}
+                            {{ farmer.last_name }}
+                        </h2>
+                        
+                        <div class="info-grid mb-3">
+                            <div class="info-item">
+                                <i class="fas fa-user text-success me-2"></i>
+                                <strong>Username:</strong> {{ farmer.username }}
+                            </div>
+                            
+                            <div class="info-item">
+                                <i class="fas fa-envelope text-success me-2"></i>
+                                <strong>Email:</strong> {{ farmer.email }}
+                            </div>
+                            
+                            <div class="info-item">
+                                <i class="fas fa-phone text-success me-2"></i>
+                                <strong>Phone:</strong> {{ farmer.phone_number|default:"Not provided" }}
+                            </div>
+                            
+                            <div class="info-item">
+                                <i class="fas fa-map-marker-alt text-success me-2"></i>
+                                <strong>Barangay:</strong> {{ farmer.barangay }}
+                            </div>
+                            
+                            <div class="info-item">
+                                <i class="fas fa-chart-area text-success me-2"></i>
+                                <strong>Farm Size:</strong> {{ farmer.farm_size }} hectares
+                            </div>
+                        </div>
+
+                        <!-- Expert Actions -->
+                        <div class="expert-actions">
+                            <!-- Updated message button logic to use farmer.id directly -->
+                            {% if farmer.id in existing_chat_farmers %}
+                                <a href="{% url 'chat_detailexpert' farmer.id %}" class="btn btn-primary me-2">
+                                    <i class="fas fa-comments me-1"></i>Continue Chat
+                                </a>
+                            {% else %}
+                                <a href="{% url 'message_farmer' farmer.id %}" class="btn btn-primary me-2">
+                                    <i class="fas fa-paper-plane me-1"></i>Start Conversation
+                                </a>
+                            {% endif %}
+                            
+                            <button class="btn btn-outline-info" onclick="showFarmerStats()">
+                                <i class="fas fa-chart-bar me-1"></i>View Activity Stats
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Farmer's Recent Posts -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-newspaper text-success me-2"></i>Recent Posts by {{ farmer.first_name }}
+            </h5>
+        </div>
+        <div class="card-body">
+            <!-- Updated to use farmer.farmerpost_set to get related posts -->
+            {% if farmer.farmerpost_set.all %}
+                <div class="row">
+                    {% for post in farmer.farmerpost_set.all|slice:":6" %}
+                        <div class="col-md-6 mb-3">
+                            <div class="post-preview card border">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ post.title|truncatechars:50 }}</h6>
+                                    <p class="card-text text-muted small">
+                                        {{ post.caption|truncatechars:100 }}
+                                    </p>
+                                    <div class="post-meta d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            <i class="far fa-clock me-1"></i>{{ post.created_at|date:"M d, Y" }}
+                                        </small>
+                                        <div class="post-stats">
+                                            <span class="me-2">
+                                                <i class="far fa-thumbs-up text-success"></i> {{ post.get_upvotes_count }}
+                                            </span>
+                                            <span>
+                                                <i class="far fa-comment text-primary"></i> {{ post.get_comments.count }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <a href="{% url 'expert_view_farmer_post' post.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye me-1"></i>Review Post
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-seedling fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">{{ farmer.first_name }} hasn't posted anything yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Prediction History -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-brain text-success me-2"></i>AI Prediction History
+            </h5>
+        </div>
+        <div class="card-body">
+            <!-- Added prediction history section using farmer.predictionhistory_set -->
+            {% if farmer.predictionhistory_set.all %}
+                <div class="row">
+                    {% for prediction in farmer.predictionhistory_set.all|slice:":4" %}
+                        <div class="col-md-6 mb-3">
+                            <div class="prediction-card card border">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="card-title mb-0">{{ prediction.predicted_class }}</h6>
+                                        <span class="badge bg-info">{{ prediction.confidence|floatformat:1 }}%</span>
+                                    </div>
+                                    {% if prediction.image_url %}
+                                        <img src="{{ prediction.image_url }}" class="img-fluid rounded mb-2" style="max-height: 100px; object-fit: cover;" alt="Prediction Image">
+                                    {% endif %}
+                                    <small class="text-muted">
+                                        <i class="far fa-clock me-1"></i>{{ prediction.uploaded_at|date:"M d, Y H:i" }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% if farmer.predictionhistory_set.count > 4 %}
+                    <div class="text-center mt-3">
+                        <small class="text-muted">Showing 4 of {{ farmer.predictionhistory_set.count }} predictions</small>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-brain fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">{{ farmer.first_name }} hasn't used AI predictions yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Activity Overview -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-line text-success me-2"></i>Activity Overview
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <!-- Updated to use actual farmer post count -->
+                        <div class="stat-number text-success">{{ farmer.farmerpost_set.count }}</div>
+                        <div class="stat-label">Total Posts</div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <!-- Updated to use actual farmer comment count -->
+                        <div class="stat-number text-primary">{{ farmer.farmerpostcomment_set.count }}</div>
+                        <div class="stat-label">Comments Made</div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <!-- Updated to use actual farmer upvote count -->
+                        <div class="stat-number text-warning">{{ farmer.farmerupvote_set.count }}</div>
+                        <div class="stat-label">Upvotes Given</div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <!-- Updated to use actual prediction count -->
+                        <div class="stat-number text-info">{{ farmer.predictionhistory_set.count }}</div>
+                        <div class="stat-label">AI Predictions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Modal -->
+<div class="modal fade" id="statsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ farmer.first_name }}'s Activity Statistics</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Posting Activity</h6>
+                        <ul class="list-unstyled">
+                            <!-- Updated modal stats to use actual model relationships -->
+                            <li><i class="fas fa-newspaper text-success me-2"></i>Total Posts: {{ farmer.farmerpost_set.count }}</li>
+                            <li><i class="fas fa-calendar text-primary me-2"></i>Most Recent Post: 
+                                {% if farmer.farmerpost_set.first %}
+                                    {{ farmer.farmerpost_set.first.created_at|date:"M d, Y" }}
+                                {% else %}
+                                    None
+                                {% endif %}
+                            </li>
+                            <li><i class="fas fa-brain text-info me-2"></i>AI Predictions Used: {{ farmer.predictionhistory_set.count }}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Community Engagement</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-comment text-info me-2"></i>Comments Made: {{ farmer.farmerpostcomment_set.count }}</li>
+                            <li><i class="fas fa-thumbs-up text-success me-2"></i>Upvotes Given: {{ farmer.farmerupvote_set.count }}</li>
+                            <li><i class="fas fa-envelope text-warning me-2"></i>Messages Sent: {{ farmer.sent_messages_farmer.count }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.farmer-profile-large {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border: 4px solid #28a745;
+    transition: transform 0.3s ease;
+}
+
+.farmer-profile-large:hover {
+    transform: scale(1.05);
+}
+
+.info-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.info-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.expert-actions {
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.post-preview, .prediction-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.post-preview:hover, .prediction-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.stat-card {
+    padding: 20px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.farmer-status .badge {
+    font-size: 0.9rem;
+}
+
+.post-stats span {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.card-header {
+    border-bottom: 2px solid #28a745;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .farmer-profile-large {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .info-grid {
+        font-size: 0.9rem;
+    }
+    
+    .expert-actions {
+        text-align: center;
+    }
+    
+    .expert-actions .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
+}
+
+/* Animation for cards */
+.card {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<script>
+function showFarmerStats() {
+    const statsModal = new bootstrap.Modal(document.getElementById('statsModal'));
+    statsModal.show();
+}
+
+// Add smooth scrolling for any anchor links
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Add loading states for buttons
+    document.querySelectorAll('.btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (this.href) {
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>' + this.textContent.trim();
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %}

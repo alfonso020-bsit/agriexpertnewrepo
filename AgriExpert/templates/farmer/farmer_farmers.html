@@ -1,0 +1,979 @@
+{% extends 'farmer/base_farmer.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Statistics Dashboard -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ total_farmers }}</h4>
+                            <p class="mb-0">Total Farmers</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ total_posts }}</h4>
+                            <p class="mb-0">Total Posts</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-newspaper fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ total_comments }}</h4>
+                            <p class="mb-0">Total Comments</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-comments fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ total_upvotes }}</h4>
+                            <p class="mb-0">Total Upvotes</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-thumbs-up fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Barangays Stats -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Top Barangays</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for stat in barangay_stats %}
+                        <div class="col-md-2 col-6 mb-2">
+                            <div class="text-center p-2 border rounded">
+                                <strong class="d-block">{{ stat.barangay }}</strong>
+                                <small class="text-muted">{{ stat.farmer_count }} Farmers</small>
+                                <br>
+                                <small class="text-muted">{{ stat.post_count }} Posts</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filters & Search</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Barangay</label>
+                    <select name="barangay" class="form-select">
+                        <option value="">All Barangays</option>
+                        {% for barangay in unique_barangays %}
+                            <option value="{{ barangay }}" {% if current_filters.barangay == barangay %}selected{% endif %}>
+                                {{ barangay }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Sort Posts</label>
+                    <select name="post_sort" class="form-select">
+                        <option value="newest" {% if current_filters.post_sort == 'newest' %}selected{% endif %}>Newest First</option>
+                        <option value="oldest" {% if current_filters.post_sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+                        <option value="most_comments" {% if current_filters.post_sort == 'most_comments' %}selected{% endif %}>Most Comments</option>
+                        <option value="most_upvotes" {% if current_filters.post_sort == 'most_upvotes' %}selected{% endif %}>Most Upvotes</option>
+                        <option value="most_engagement" {% if current_filters.post_sort == 'most_engagement' %}selected{% endif %}>High Engagement</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Solution Status</label>
+                    <select name="has_solution" class="form-select">
+                        <option value="">All Posts</option>
+                        <option value="yes" {% if current_filters.has_solution == 'yes' %}selected{% endif %}>Has Solution</option>
+                        <option value="no" {% if current_filters.has_solution == 'no' %}selected{% endif %}>No Solution</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Min Farm Size (ha)</label>
+                    <input type="number" name="farm_size_min" class="form-control" placeholder="0" step="0.1" value="{{ current_filters.farm_size_min }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Max Farm Size (ha)</label>
+                    <input type="number" name="farm_size_max" class="form-control" placeholder="100" step="0.1" value="{{ current_filters.farm_size_max }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Search</label>
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Search posts, farmers..." value="{{ current_filters.search_query }}">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-filter me-1"></i>Apply Filters
+                        </button>
+                        {% if current_filters.barangay or current_filters.post_sort != 'newest' or current_filters.has_solution or current_filters.search_query or current_filters.farm_size_min or current_filters.farm_size_max %}
+                        <a href="{% url 'farmer_farmers' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Clear Filters
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fellow Farmers Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-tractor me-2"></i>Fellow Farmers</h5>
+            <span class="badge bg-success">{{ farmers.count }} Farmers</span>
+        </div>
+        <div class="card-body">
+            <div class="farmer-scroll-container d-flex align-items-center">
+                {% for farmer in farmers %}
+                    <div class="farmer-card text-center">
+                        <div class="profile-container position-relative">
+                            <img src="{{ farmer.profile_picture }}" class="rounded-circle farmer-profile" alt="Profile Picture">
+                            <span class="position-absolute top-0 start-100 translate-middle badge bg-success">
+                                {{ farmer.farmerpost_set.count }}
+                            </span>
+                        </div>
+                        <div class="farmer-details">
+                            <strong class="d-block">{{ farmer.first_name }}{% if farmer.middle_name %} {{ farmer.middle_name }}{% endif %} {{ farmer.last_name }}</strong>
+                            <small class="text-muted d-block">{{ farmer.barangay }}</small>
+                            <small class="text-muted">{{ farmer.farm_size }} hectares</small>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-center w-100 my-4">No fellow farmers at the moment.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Community Posts Section -->
+    <div class="card">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-seedling me-2"></i>Community Posts</h5>
+            <span class="badge bg-primary">{{ farmer_posts.count }} Posts</span>
+        </div>
+        <div class="card-body">
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="text-center p-3 border rounded bg-light">
+                        <h4 class="text-success mb-1">{{ total_posts }}</h4>
+                        <small class="text-muted">Total Posts</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3 border rounded bg-light">
+                        <h4 class="text-primary mb-1">{{ total_comments }}</h4>
+                        <small class="text-muted">Total Comments</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3 border rounded bg-light">
+                        <h4 class="text-warning mb-1">{{ total_upvotes }}</h4>
+                        <small class="text-muted">Total Upvotes</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feed-container">
+                {% for post in farmer_posts %}
+                <div class="feed-post mb-4 shadow-sm p-3 rounded bg-white position-relative">
+                    <!-- Engagement Badge -->
+                    <div class="position-absolute top-0 end-0 m-2">
+                        <span class="badge bg-primary">
+                            <i class="fas fa-fire me-1"></i>{{ post.engagement_score }}
+                        </span>
+                    </div>
+                    
+                    <!-- Solution Badge -->
+                    {% if post.has_solution %}
+                    <div class="position-absolute top-0 start-0 m-2">
+                        <span class="badge bg-success">
+                            <i class="fas fa-check me-1"></i>Solved
+                        </span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="post-header d-flex align-items-center mb-3">
+                        <img src="{{ post.farmer.profile_picture }}" class="post-profile rounded-circle me-2" alt="Farmer Profile">
+                        <div class="flex-grow-1">
+                            <strong>{{ post.farmer.first_name }}{% if post.farmer.middle_name %} {{ post.farmer.middle_name }}{% endif %} {{ post.farmer.last_name }}</strong>
+                            <span class="badge bg-success ms-2">Farmer</span>
+                            <br>
+                            <small class="text-muted">{{ post.farmer.barangay }}</small>
+                            <span class="badge bg-info ms-1">{{ post.farmer.farm_size }} ha</span>
+                            <br>
+                            <small class="text-muted"><i class="far fa-clock me-1"></i>Posted on {{ post.created_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-success">{{ post.title }}</h5>
+                    <p class="caption-text">{{ post.caption|linebreaksbr }}</p>
+
+                    <!-- Post Images -->
+                    {% with post.get_images as images %}
+                        {% if images|length == 1 %}
+                            <img src="{{ images.0.image_url }}" class="img-fluid rounded mb-2 single-image" alt="Post Image" 
+                                 data-bs-toggle="modal" data-bs-target="#imageModal{{ post.id }}_1">
+                            
+                            <!-- Modal for single image -->
+                            <div class="modal fade" id="imageModal{{ post.id }}_1" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-body p-0">
+                                            <img src="{{ images.0.image_url }}" class="img-fluid w-100" alt="Full Image">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% elif images|length > 1 %}
+                            <div class="row g-2">
+                                {% for image in images %}
+                                    <div class="col-6 col-md-4">
+                                        <img src="{{ image.image_url }}" class="img-fluid rounded multi-image" alt="Post Image"
+                                             data-bs-toggle="modal" data-bs-target="#imageModal{{ post.id }}_{{ forloop.counter }}"
+                                             style="cursor: pointer;">
+                                    </div>
+                                    
+                                    <!-- Modal for each image -->
+                                    <div class="modal fade" id="imageModal{{ post.id }}_{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                                            <div class="modal-content">
+                                                <div class="modal-body p-0">
+                                                    <img src="{{ image.image_url }}" class="img-fluid w-100" alt="Full Image">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+
+                    <!-- Post Stats -->
+                    <div class="post-stats mt-3 d-flex align-items-center flex-wrap gap-3">
+                        <span class="text-success">
+                            <i class="far fa-thumbs-up"></i> {{ post.upvote_count }} Upvotes
+                        </span>
+                        <span class="text-primary">
+                            <i class="far fa-comment"></i> {{ post.comment_count }} Comments
+                        </span>
+                        <span class="badge {% if post.has_solution %}bg-success{% else %}bg-secondary{% endif %}">
+                            <i class="fas {% if post.has_solution %}fa-check{% else %}fa-clock{% endif %} me-1"></i>
+                            {% if post.has_solution %}Solved{% else %}Unsolved{% endif %}
+                        </span>
+                    </div>
+                    
+                    <hr>
+
+                    <!-- Post Actions -->
+                    <div class="post-actions mt-3 d-flex align-items-center">
+                        <!-- Upvote Button -->
+                        <button class="btn btn-sm me-2 upvote-btn" 
+                                data-post-id="{{ post.id }}" 
+                                id="upvote-btn-{{ post.id }}"
+                                style="{% if post.user_has_upvoted %}background-color: #28a745; color: white; border-color: #28a745;{% else %}background-color: transparent; color: #28a745; border-color: #28a745;{% endif %}">
+                            <i class="fas fa-thumbs-up me-1"></i>
+                            <span id="upvote-text-{{ post.id }}">{% if post.user_has_upvoted %}Upvoted{% else %}Upvote{% endif %}</span>
+                        </button>
+                        
+                        <!-- View Post Button -->
+                        <a href="{% url 'view_farmer_post' post.id %}" class="btn btn-outline-primary btn-sm me-2">
+                            <i class="fas fa-comment me-1"></i>Comment
+                        </a>
+                        
+                        <!-- Quick Comment Button -->
+                        <button class="btn btn-outline-secondary btn-sm comment-toggle-btn" data-post-id="{{ post.id }}">
+                            <i class="fas fa-edit me-1"></i>Quick Comment
+                        </button>
+                    </div>
+                    
+                    <!-- Quick Comment Form (initially hidden) -->
+                    <div class="quick-comment-form mt-3" id="comment-form-{{ post.id }}" style="display: none;">
+                        <div class="d-flex">
+                            <input type="text" class="form-control me-2" placeholder="Add a comment..." 
+                                   id="comment-input-{{ post.id }}">
+                            <button class="btn btn-primary submit-comment-btn" data-post-id="{{ post.id }}">Post</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Comments Section Preview -->
+                    {% if post.comment_count > 0 %}
+                        <h6 class="fw-bold mb-3 mt-3 text-success">
+                            <i class="far fa-comments me-2"></i>Recent Comments
+                            {% if post.comment_count > 3 %}
+                                <small class="text-muted">(Showing latest 3 of {{ post.comment_count }})</small>
+                            {% endif %}
+                        </h6>
+                        <div class="comments">
+                            {% for comment in post.latest_comments %}
+                            <div class="regular-comment mb-2 p-2 border-start {% if comment.is_solution %}border-success border-3 bg-success bg-opacity-10{% else %}border-secondary border-3 bg-light{% endif %} rounded">
+                                <div class="d-flex align-items-start">
+                                    {% if comment.farmer %}
+                                        <img src="{{ comment.farmer.profile_picture }}" class="rounded-circle me-2" alt="Farmer Profile" style="width: 35px; height: 35px; object-fit: cover;">
+                                        <div class="flex-grow-1">
+                                            <strong>{{ comment.farmer.first_name }}{% if comment.farmer.middle_name %} {{ comment.farmer.middle_name }}{% endif %} {{ comment.farmer.last_name }}</strong>
+                                            <span class="badge bg-success ms-1">Farmer</span>
+                                            
+                                            {% if comment.is_solution %}
+                                                <span class="badge bg-success ms-1" id="solution-badge-{{ comment.id }}">
+                                                    <i class="fas fa-check"></i> Solution
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary d-none" id="solution-badge-{{ comment.id }}"></span>
+                                            {% endif %}
+                                            
+                                            <small class="text-muted d-block">
+                                                <i class="far fa-clock me-1"></i>{{ comment.created_at|date:"M d, Y H:i" }}
+                                            </small>
+                                            
+                                            <p class="mb-0 mt-1">{{ comment.content|linebreaksbr }}</p>
+                                            
+                                            <!-- Add Mark as Solution button for post owner -->
+                                            {% if request.session.user_id|add:"0" == post.farmer.id and comment.farmer.id != post.farmer.id %}
+                                                <div class="mt-2">
+                                                    {% if comment.is_solution %}
+                                                        <button class="btn btn-sm btn-outline-danger" 
+                                                                id="mark-solution-btn-{{ comment.id }}"
+                                                                onclick="markFarmerCommentAsSolution({{ comment.id }}, {{ post.id }})">
+                                                            <i class="fas fa-times me-1"></i>Unmark Solution
+                                                        </button>
+                                                    {% else %}
+                                                        <button class="btn btn-sm btn-outline-success" 
+                                                                id="mark-solution-btn-{{ comment.id }}"
+                                                                onclick="markFarmerCommentAsSolution({{ comment.id }}, {{ post.id }})">
+                                                            <i class="fas fa-check me-1"></i>Mark as Solution
+                                                        </button>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% elif comment.expert %}
+                                        <img src="{{ comment.expert.profile_picture }}" class="rounded-circle me-2" alt="Expert Profile" style="width: 35px; height: 35px; object-fit: cover;">
+                                        <div class="flex-grow-1">
+                                            <strong>{{ comment.expert.first_name }} {{ comment.expert.last_name }}</strong>
+                                            <span class="badge bg-primary ms-1">Expert</span>
+                                            
+                                            {% if comment.is_solution %}
+                                                <span class="badge bg-success ms-1" id="solution-badge-{{ comment.id }}">
+                                                    <i class="fas fa-check"></i> Solution
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary d-none" id="solution-badge-{{ comment.id }}"></span>
+                                            {% endif %}
+                                            
+                                            <small class="text-muted d-block">
+                                                <i class="far fa-clock me-1"></i>{{ comment.created_at|date:"M d, Y H:i" }}
+                                            </small>
+                                            
+                                            <p class="mb-0 mt-1">{{ comment.content|linebreaksbr }}</p>
+                                            
+                                            <!-- Add Mark as Solution button for post owner -->
+                                            {% if request.session.user_id|add:"0" == post.farmer.id %}
+                                                <div class="mt-2">
+                                                    {% if comment.is_solution %}
+                                                        <button class="btn btn-sm btn-outline-danger" 
+                                                                id="mark-solution-btn-{{ comment.id }}"
+                                                                onclick="markFarmerCommentAsSolution({{ comment.id }}, {{ post.id }})">
+                                                            <i class="fas fa-times me-1"></i>Unmark Solution
+                                                        </button>
+                                                    {% else %}
+                                                        <button class="btn btn-sm btn-outline-success" 
+                                                                id="mark-solution-btn-{{ comment.id }}"
+                                                                onclick="markFarmerCommentAsSolution({{ comment.id }}, {{ post.id }})">
+                                                            <i class="fas fa-check me-1"></i>Mark as Solution
+                                                        </button>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                            
+                            {% if post.comment_count > 3 %}
+                                <div class="mt-2">
+                                    <a href="{% url 'view_farmer_post' post.id %}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-external-link-alt me-1"></i>View All {{ post.comment_count }} Comments
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-3">
+                            <i class="far fa-comment-dots me-2"></i>No comments on this post yet.
+                        </p>
+                    {% endif %}
+                </div>
+                
+                <!-- Image Modals -->
+                {% with post.get_images as images %}
+                    {% for image in images %}
+                        <div class="modal fade" id="imageModal{{ post.id }}_{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h6 class="modal-title">Post Image</h6>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body p-0 text-center">
+                                        <img src="{{ image.image_url }}" class="img-fluid" alt="Full Image" style="max-height: 80vh;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endwith %}
+                
+                {% empty %}
+                    <div class="text-center p-4 bg-light rounded">
+                        <i class="fas fa-seedling fa-3x text-secondary mb-3"></i>
+                        <p class="mb-2">No farmer posts available at this time.</p>
+                        {% if current_filters.barangay or current_filters.has_solution or current_filters.search_query %}
+                            <p class="text-muted">Try adjusting your filters to see more results.</p>
+                            <a href="{% url 'farmer_farmers' %}" class="btn btn-success">Clear Filters</a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSRF token for AJAX requests -->
+{% csrf_token %}
+
+<style>
+/* Enhanced Styles for Farmers */
+.farmer-scroll-container {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+.farmer-card {
+    display: inline-block;
+    margin: 0 15px;
+    padding: 15px;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s ease;
+    min-width: 160px;
+    background: white;
+    border-radius: 12px;
+    border: 2px solid #28a745;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
+}
+
+.farmer-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
+}
+
+.farmer-profile {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #28a745;
+    transition: all 0.3s ease;
+}
+
+.farmer-profile:hover {
+    border-color: #218838;
+    transform: scale(1.05);
+}
+
+.farmer-details {
+    margin-top: 10px;
+    font-size: 14px;
+    white-space: normal;
+    max-width: 140px;
+}
+
+/* Post Styling */
+.feed-container {
+    max-width: 100%;
+    margin: auto;
+}
+
+.feed-post {
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    position: relative;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fff9 100%);
+}
+
+.feed-post:hover {
+    box-shadow: 0 5px 20px rgba(40, 167, 69, 0.15);
+    border-color: #28a745;
+}
+
+.post-header {
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 15px;
+}
+
+.post-profile {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border: 3px solid #28a745;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.caption-text {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    font-size: 15px;
+}
+
+.single-image {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.single-image:hover {
+    transform: scale(1.01);
+}
+
+.multi-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.multi-image:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Post Stats */
+.post-stats {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.post-stats i {
+    margin-right: 5px;
+}
+
+/* Comments styling */
+.comments {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.regular-comment {
+    transition: all 0.3s ease;
+}
+
+.regular-comment:hover {
+    background-color: #f8fff9 !important;
+    transform: translateX(2px);
+}
+
+/* Custom scrollbar */
+.farmer-scroll-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.farmer-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.farmer-scroll-container::-webkit-scrollbar-thumb {
+    background: #28a745;
+    border-radius: 4px;
+}
+
+.farmer-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #218838;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .farmer-profile {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .farmer-details {
+        font-size: 12px;
+        max-width: 120px;
+    }
+    
+    .farmer-card {
+        min-width: 140px;
+        margin: 0 10px;
+    }
+    
+    .post-profile {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .card-header h5 {
+        font-size: 1.1rem;
+    }
+}
+
+/* Animation for new elements */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.feed-post {
+    animation: fadeInUp 0.5s ease-out;
+}
+</style>
+
+<script>
+    // Simple getCookie function that works everywhere
+window.getCookie = function(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+};
+document.addEventListener('DOMContentLoaded', function() {
+    // Enhanced search functionality
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const filter = this.value.toLowerCase();
+            const posts = document.querySelectorAll('.feed-post');
+            
+            posts.forEach(function(post) {
+                const title = post.querySelector('h5')?.textContent.toLowerCase() || '';
+                const caption = post.querySelector('.caption-text')?.textContent.toLowerCase() || '';
+                const farmerName = post.querySelector('.post-header strong')?.textContent.toLowerCase() || '';
+                const barangay = post.querySelector('.post-header .text-muted')?.textContent.toLowerCase() || '';
+                
+                if (title.includes(filter) || caption.includes(filter) || farmerName.includes(filter) || barangay.includes(filter)) {
+                    post.style.display = "";
+                } else {
+                    post.style.display = "none";
+                }
+            });
+        });
+    }
+
+    // Auto-submit form when select elements change
+    const filterSelects = document.querySelectorAll('select[name="barangay"], select[name="post_sort"], select[name="has_solution"]');
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+
+    // Smooth scrolling for farmer container
+    const farmerContainer = document.querySelector('.farmer-scroll-container');
+    if (farmerContainer) {
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        farmerContainer.addEventListener('mousedown', (e) => {
+            isDown = true;
+            farmerContainer.classList.add('active');
+            startX = e.pageX - farmerContainer.offsetLeft;
+            scrollLeft = farmerContainer.scrollLeft;
+        });
+
+        farmerContainer.addEventListener('mouseleave', () => {
+            isDown = false;
+            farmerContainer.classList.remove('active');
+        });
+
+        farmerContainer.addEventListener('mouseup', () => {
+            isDown = false;
+            farmerContainer.classList.remove('active');
+        });
+
+        farmerContainer.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - farmerContainer.offsetLeft;
+            const walk = (x - startX) * 2;
+            farmerContainer.scrollLeft = scrollLeft - walk;
+        });
+    }
+
+    // Upvote functionality
+    document.querySelectorAll('.upvote-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const upvoteBtn = document.getElementById(`upvote-btn-${postId}`);
+            const upvoteText = document.getElementById(`upvote-text-${postId}`);
+            
+            console.log(`Upvoting post ${postId}`);
+            
+            fetch(`/farmer/post/${postId}/upvote/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Upvote response:', data);
+                if (data.upvoted !== undefined) {
+                    if (data.upvoted) {
+                        upvoteBtn.style.backgroundColor = '#28a745';
+                        upvoteBtn.style.color = 'white';
+                        upvoteBtn.style.borderColor = '#28a745';
+                        upvoteText.textContent = 'Upvoted';
+                    } else {
+                        upvoteBtn.style.backgroundColor = 'transparent';
+                        upvoteBtn.style.color = '#28a745';
+                        upvoteBtn.style.borderColor = '#28a745';
+                        upvoteText.textContent = 'Upvote';
+                    }
+                    
+                    // Update upvote count display if it exists
+                    const upvoteCountElement = document.querySelector(`#upvote-btn-${postId} .upvote-count`);
+                    if (upvoteCountElement) {
+                        upvoteCountElement.textContent = data.upvote_count;
+                    }
+                } else {
+                    console.error('Unexpected response format:', data);
+                    alert('Error: Unexpected response from server.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating upvote. Please try again.');
+            });
+        });
+    });
+    // Quick comment toggle
+    document.querySelectorAll('.comment-toggle-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const commentForm = document.getElementById(`comment-form-${postId}`);
+            
+            if (commentForm.style.display === 'none') {
+                commentForm.style.display = 'block';
+                document.getElementById(`comment-input-${postId}`).focus();
+            } else {
+                commentForm.style.display = 'none';
+            }
+        });
+    });
+
+    // Submit comment
+    document.querySelectorAll('.submit-comment-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const commentInput = document.getElementById(`comment-input-${postId}`);
+            const content = commentInput.value.trim();
+            
+            if (!content) {
+                alert('Please enter a comment.');
+                return;
+            }
+            
+            fetch(`/farmer/post/${postId}/comment/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({content: content})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    commentInput.value = '';
+                    document.getElementById(`comment-form-${postId}`).style.display = 'none';
+                    alert('Comment added successfully!');
+                    // Optionally reload the page to show the new comment
+                    location.reload();
+                } else {
+                    alert('Error adding comment: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding comment. Please try again.');
+            });
+        });
+    });
+
+    // Enter key for quick comment
+    document.querySelectorAll('[id^="comment-input-"]').forEach(function(input) {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const postId = this.id.split('-')[2];
+                document.querySelector(`.submit-comment-btn[data-post-id="${postId}"]`).click();
+            }
+        });
+    });
+
+    // Add loading animation
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        form.addEventListener('submit', function() {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
+                submitBtn.disabled = true;
+            }
+        });
+    });
+
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Enable Bootstrap tooltips if needed
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Function to mark comment as solution
+function markFarmerCommentAsSolution(commentId, postId) {
+    fetch(`/farmer/mark-comment-solution/${commentId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            // Update UI to reflect solution status
+            const solutionBadge = document.querySelector(`#solution-badge-${commentId}`);
+            const markSolutionBtn = document.querySelector(`#mark-solution-btn-${commentId}`);
+            
+            if (data.is_solution) {
+                // Mark as solution
+                if (solutionBadge) {
+                    solutionBadge.innerHTML = '<i class="fas fa-check me-1"></i>Solution';
+                    solutionBadge.classList.remove('bg-secondary', 'd-none');
+                    solutionBadge.classList.add('bg-success');
+                }
+                if (markSolutionBtn) {
+                    markSolutionBtn.innerHTML = '<i class="fas fa-times me-1"></i>Unmark Solution';
+                    markSolutionBtn.classList.remove('btn-outline-success');
+                    markSolutionBtn.classList.add('btn-outline-danger');
+                }
+            } else {
+                // Unmark solution
+                if (solutionBadge) {
+                    solutionBadge.innerHTML = '';
+                    solutionBadge.classList.remove('bg-success');
+                    solutionBadge.classList.add('d-none');
+                }
+                if (markSolutionBtn) {
+                    markSolutionBtn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Solution';
+                    markSolutionBtn.classList.remove('btn-outline-danger');
+                    markSolutionBtn.classList.add('btn-outline-success');
+                }
+            }
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error marking comment as solution.');
+    });
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,263 @@
+{% extends 'expert/base_expert.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Back Button -->
+    <div class="mb-3">
+        <a href="{% url 'expert_experts' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Experts
+        </a>
+    </div>
+
+    <!-- Expert Profile Header -->
+    <div class="row">
+        <div class="col-md-4 text-center">
+            <div class="profile-picture-container mb-3">
+                {% if expert.profile_picture %}
+                    <img src="{{ expert.profile_picture }}" class="rounded-circle profile-picture" alt="Expert Profile">
+                {% else %}
+                    <div class="rounded-circle profile-picture d-flex align-items-center justify-content-center bg-secondary text-white">
+                        <i class="fas fa-user fa-4x"></i>
+                    </div>
+                {% endif %}
+                <div class="verified-badge-large">
+                    <i class="fas fa-check-circle text-success"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="expert-info">
+                <h2 class="fw-bold text-dark">
+                    {{ expert.first_name }}{% if expert.middle_name %} {{ expert.middle_name }}{% endif %} {{ expert.last_name }}
+                </h2>
+                <p class="lead text-muted">{{ expert.position|default:"Agricultural Expert" }}</p>
+                
+                <div class="row mt-4">
+                    <div class="col-sm-6">
+                        <div class="info-item">
+                            <i class="fas fa-envelope text-primary me-2"></i>
+                            <strong>Email:</strong> {{ expert.email }}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="info-item">
+                            <i class="fas fa-phone text-primary me-2"></i>
+                            <strong>Phone:</strong> {{ expert.phone_number }}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="info-item">
+                            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                            <strong>Barangay:</strong> {{ expert.barangay }}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="info-item">
+                            <i class="fas fa-id-card text-primary me-2"></i>
+                            <strong>License:</strong> {{ expert.license_number }}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="info-item">
+                            <i class="fas fa-user-tag text-primary me-2"></i>
+                            <strong>Username:</strong> {{ expert.username }}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="info-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>Status:</strong> 
+                            <span class="badge bg-success">{{ expert.status }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {% if expert.proof_of_expertise %}
+                <div class="mt-3">
+                    <a href="{{ expert.proof_of_expertise }}" target="_blank" class="btn btn-outline-primary">
+                        <i class="fas fa-certificate me-2"></i>View Credentials
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <hr class="my-4">
+
+    <!-- Expert Statistics -->
+    <div class="row text-center mb-4">
+        <div class="col-md-3">
+            <div class="stat-card p-3 bg-light rounded">
+                <h4 class="text-primary">{{ expert.expertpost_set.count }}</h4>
+                <p class="mb-0">Posts Created</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card p-3 bg-light rounded">
+                <h4 class="text-success">{{ expert.comment_set.count }}</h4>
+                <p class="mb-0">Comments Made</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card p-3 bg-light rounded">
+                <h4 class="text-warning">{{ total_upvotes }}</h4>
+                <p class="mb-0">Total Upvotes</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card p-3 bg-light rounded">
+                <h4 class="text-info">{{ solutions_count }}</h4>
+                <p class="mb-0">Solutions Provided</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expert's Posts -->
+    <div class="posts-section">
+        <h4 class="fw-bold mb-3">
+            <i class="fas fa-newspaper text-primary me-2"></i>Posts by {{ expert.first_name }}
+        </h4>
+        
+        {% if expert.expertpost_set.all %}
+            <div class="row">
+                {% for post in expert.expertpost_set.all %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        {% with post.get_images as images %}
+                            {% if images %}
+                                <img src="{{ images.0.image_url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Post Image">
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <div class="card-body">
+                            <h5 class="card-title">{{ post.title }}</h5>
+                            <p class="card-text">{{ post.caption|truncatewords:20|linebreaksbr }}</p>
+                            <small class="text-muted">{{ post.created_at|date:"M d, Y" }}</small>
+                        </div>
+                        
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-muted">
+                                        <i class="far fa-thumbs-up"></i> {{ post.get_upvotes_count }}
+                                        <i class="far fa-comment ms-2"></i> {{ post.get_comments.count }}
+                                    </small>
+                                </div>
+                                <a href="{% url 'view_post' post.id %}" class="btn btn-primary btn-sm">
+                                    View Post
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center p-4 bg-light rounded">
+                <i class="fas fa-newspaper fa-3x text-secondary mb-3"></i>
+                <p class="text-muted">This expert hasn't created any posts yet.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Comments/Solutions -->
+    <div class="comments-section mt-5">
+        <h4 class="fw-bold mb-3">
+            <i class="fas fa-comments text-success me-2"></i>Recent Comments & Solutions
+        </h4>
+        
+        {% if expert.comment_set.all %}
+            <div class="comments-list">
+                {% for comment in expert.comment_set.all|slice:":5" %}
+                <div class="comment-item p-3 mb-3 bg-light rounded">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">
+                                <a href="{% url 'view_post' comment.post.id %}" class="text-decoration-none">
+                                    {{ comment.post.title }}
+                                </a>
+                                {% if comment.is_solution %}
+                                    <span class="badge bg-success ms-2">✓ Solution</span>
+                                {% endif %}
+                            </h6>
+                            <p class="mb-2">{{ comment.content|truncatewords:15|linebreaksbr }}</p>
+                            <small class="text-muted">{{ comment.created_at|date:"M d, Y H:i" }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if expert.comment_set.count > 5 %}
+                <div class="text-center">
+                    <p class="text-muted">And {{ expert.comment_set.count|add:"-5" }} more comments...</p>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center p-4 bg-light rounded">
+                <i class="fas fa-comments fa-3x text-secondary mb-3"></i>
+                <p class="text-muted">This expert hasn't made any comments yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.profile-picture {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border: 4px solid #186d00ff;
+}
+
+.profile-picture-container {
+    position: relative;
+    display: inline-block;
+}
+
+.verified-badge-large {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    font-size: 24px;
+}
+
+.info-item {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+.stat-card {
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.comment-item {
+    border-left: 4px solid #188e00ff;
+    transition: background-color 0.2s;
+}
+
+.comment-item:hover {
+    background-color: #e9ecef !important;
+}
+
+@media (max-width: 768px) {
+    .profile-picture {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .info-item {
+        font-size: 14px;
+    }
+}
+</style>
+
+{% endblock %}

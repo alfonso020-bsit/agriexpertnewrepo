@@ -1,0 +1,355 @@
+{% extends 'adminako/base_admin.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Farmer Profile Header -->
+    <div class="row mb-4">
+        <div class="col-md-4 text-center">
+            <img src="{{ farmer.profile_picture }}" class="img-fluid rounded-circle mb-3" 
+                 style="width: 200px; height: 200px; object-fit: cover; border: 5px solid #28a745;"
+                 onerror="this.src='{% static 'images/default-profile.png' %}'">
+            <h3 class="text-success">{{ farmer.first_name }}{% if farmer.middle_name %} {{ farmer.middle_name }}{% endif %} {{ farmer.last_name }}</h3>
+            <p class="text-muted">
+                <i class="fas fa-map-marker-alt me-1"></i>{{ farmer.barangay }}
+            </p>
+            <span class="badge bg-success fs-6">
+                <i class="fas fa-user-check me-1"></i>Magsasaka
+            </span>
+        </div>
+        <div class="col-md-8">
+            <h2 class="text-success mb-4">
+                <i class="fas fa-user me-2"></i>Profile ng Magsasaka
+            </h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong><i class="fas fa-user me-2"></i>Username:</strong> {{ farmer.username }}</p>
+                    <p><strong><i class="fas fa-map-marker-alt me-2"></i>Barangay:</strong> {{ farmer.barangay }}</p>
+                    <p><strong><i class="fas fa-ruler-combined me-2"></i>Lawak ng Sakahan:</strong> {{ farmer.farm_size|default:"Hindi nakalista" }} hectares</p>
+                    <p><strong><i class="fas fa-phone me-2"></i>Telepono:</strong> {{ farmer.phone_number|default:"Hindi nakalista" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong><i class="fas fa-envelope me-2"></i>Email:</strong> {{ farmer.email|default:"Hindi nakalista" }}</p>
+                    <p><strong><i class="fas fa-id-card me-2"></i>Farmer ID:</strong> {{ farmer.id }}</p>
+                    <p><strong><i class="fas fa-circle me-2 text-success"></i>Status:</strong> <span class="badge bg-success">Aktibo</span></p>
+                    <p><strong><i class="fas fa-user-tag me-2"></i>Role:</strong> {{ farmer.role }}</p>
+                </div>
+            </div>
+            
+            <!-- Statistics -->
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="card bg-light border-0">
+                        <div class="card-body text-center">
+                            <h4 class="text-primary mb-1">{{ total_posts|default:"0" }}</h4>
+                            <small class="text-muted">Mga Post</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light border-0">
+                        <div class="card-body text-center">
+                            <h4 class="text-success mb-1">{{ total_comments|default:"0" }}</h4>
+                            <small class="text-muted">Mga Komento</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light border-0">
+                        <div class="card-body text-center">
+                            <h4 class="text-info mb-1">{{ total_consultations|default:"0" }}</h4>
+                            <small class="text-muted">Konsultasyon</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light border-0">
+                        <div class="card-body text-center">
+                            <h4 class="text-warning mb-1">{{ total_predictions|default:"0" }}</h4>
+                            <small class="text-muted">Deteksyon</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="mt-4">
+                <a href="{% url 'admin_reports' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Bumalik sa Mga Ulat
+                </a>
+                <a href="{% url 'admin_view_farmer' farmer.id %}" class="btn btn-warning">
+                    <i class="fas fa-cog me-1"></i> Admin Management View
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Farmer's Posts Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-newspaper me-2"></i>
+                Mga Post ni {{ farmer.first_name }}
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for post in farmer_posts %}
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 shadow-sm">
+                        {% with post.images.first as first_image %}
+                            {% if first_image %}
+                                <img src="{{ first_image.image_url }}" class="card-img-top" 
+                                     style="height: 200px; object-fit: cover;"
+                                     onerror="this.style.display='none'">
+                            {% else %}
+                                <div class="card-img-top d-flex align-items-center justify-content-center bg-light" style="height: 200px;">
+                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title text-success">{{ post.title }}</h6>
+                            <p class="card-text flex-grow-1">{{ post.caption|truncatewords:20 }}</p>
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="far fa-calendar me-1"></i> 
+                                    Na-post noong {{ post.created_at|date:"M d, Y" }}
+                                </small>
+                            </div>
+                            
+                            <!-- Post Stats -->
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="far fa-thumbs-up me-1"></i> {{ post.get_upvotes_count }} upvotes
+                                    <span class="ms-2"><i class="far fa-comment me-1"></i> {{ post.get_comments.count }} komento</span>
+                                    <span class="ms-2"><i class="far fa-images me-1"></i> {{ post.images.count }} larawan</span>
+                                </small>
+                            </div>
+                            
+                            <div class="mt-auto">
+                                <a href="{% url 'admin_view_farmer_post' post.id %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye me-1"></i> Tingnan ang Post
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="text-center p-4 bg-light rounded">
+                        <i class="fas fa-seedling fa-3x text-secondary mb-3"></i>
+                        <h5 class="text-muted">Walang Post</h5>
+                        <p class="text-muted">Ang magsasaka na ito ay wala pang naipapaskil.</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Comments by Farmer -->
+    {% if farmer_comments %}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-comments me-2"></i>
+                Kamakailang Mga Komento ni {{ farmer.first_name }}
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="list-group list-group-flush">
+                {% for comment in farmer_comments %}
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <div>
+                            <h6 class="mb-1">
+                                <a href="{% url 'admin_view_farmer_post' comment.post.id %}" class="text-decoration-none text-dark">
+                                    <i class="fas fa-file-alt me-2"></i>
+                                    Komento sa: {{ comment.post.title }}
+                                </a>
+                            </h6>
+                            <p class="mb-1 text-muted">{{ comment.content|truncatewords:30 }}</p>
+                        </div>
+                        <small class="text-muted">{{ comment.created_at|date:"M d, Y H:i" }}</small>
+                    </div>
+                    <div class="mt-2">
+                        <a href="{% url 'admin_view_farmer_post' comment.post.id %}" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-external-link-alt me-1"></i> Tingnan ang Post
+                        </a>
+                        {% if comment.is_solution %}
+                            <span class="badge bg-warning ms-2">
+                                <i class="fas fa-star me-1"></i> Minarkahan bilang Solusyon
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    {% if farmer_comments|length >= 10 %}
+    <div class="text-center mt-3">
+        <small class="text-muted">Ipinapakita ang huling 10 komento lamang</small>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-comments me-2"></i>
+                Kamakailang Mga Komento
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="text-center p-4 bg-light rounded">
+                <i class="fas fa-comments fa-3x text-secondary mb-3"></i>
+                <h5 class="text-muted">Walang Komento</h5>
+                <p class="text-muted">Ang magsasaka na ito ay wala pang naikokomento sa mga post.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Consultation History -->
+    <div class="card">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+                <i class="fas fa-handshake me-2"></i>
+                Kasaysayan ng Konsultasyon
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if consultations %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Petsa</th>
+                            <th>Eksperto</th>
+                            <th>Mensahe</th>
+                            <th>Status</th>
+                            <th>Klase</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for consultation in consultations %}
+                        <tr>
+                            <td>{{ consultation.timestamp|date:"M d, Y" }}</td>
+                            <td>
+                                {% if consultation.receiver_expert %}
+                                    {{ consultation.receiver_expert.first_name }} {{ consultation.receiver_expert.last_name }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ consultation.message_text|truncatewords:10 }}</td>
+                            <td>
+                                {% if consultation.is_solved %}
+                                    <span class="badge bg-success">Nalutas</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Hindi pa Nalutas</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ consultation.classification|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center p-4 bg-light rounded">
+                <i class="fas fa-handshake fa-3x text-secondary mb-3"></i>
+                <h5 class="text-muted">Walang Konsultasyon</h5>
+                <p class="text-muted">Ang magsasaka na ito ay wala pang nairekord na konsultasyon sa mga eksperto.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styles for the farmer profile page */
+.card {
+    transition: box-shadow 0.3s ease;
+    border: none;
+}
+
+.card:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.badge {
+    font-size: 0.85em;
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+    border-color: #e9ecef;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Profile image fallback */
+.profile-image-fallback {
+    width: 200px;
+    height: 200px;
+    background-color: #f8f9fa;
+    border: 5px solid #28a745;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: #6c757d;
+}
+
+/* Custom card header styles */
+.card-header {
+    border-bottom: 2px solid rgba(0,0,0,0.1);
+}
+
+/* Table styling */
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+</style>
+
+<script>
+// Add any JavaScript functionality if needed
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle image loading errors
+    const images = document.querySelectorAll('img[onerror]');
+    images.forEach(function(img) {
+        img.addEventListener('error', function() {
+            this.style.display = 'none';
+        });
+    });
+    
+    // Add smooth scrolling for better UX
+    const links = document.querySelectorAll('a[href^="#"]');
+    links.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

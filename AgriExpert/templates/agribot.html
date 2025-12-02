@@ -1,0 +1,458 @@
+<!-- AgriBot Floating AI Assistant -->
+<button id="agribot-launcher" onclick="toggleAgriBot()">
+    <i class="fas fa-robot"></i>
+</button>
+
+<div id="agribot-window">
+    <div class="agribot-header">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-robot me-2"></i>
+            <h5 class="mb-0">AgriBot</h5>
+            <span class="status-indicator"></span>
+        </div>
+        <button onclick="toggleAgriBot()" class="btn btn-sm text-white">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    
+    <div class="agribot-messages" id="agribot-messages">
+        <div class="message bot">
+            <div class="message-content">
+                <div class="message-sender">AgriBot</div>
+                <div class="message-text">Hello! I'm AgriBot, your rice farming expert! Ask me anything about rice diseases, pests, or cultivation techniques! 🌾</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="typing-indicator" id="agribot-typing" style="display: none;">
+        <div class="typing-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <span class="typing-text">AgriBot is typing...</span>
+    </div>
+    
+    <div class="agribot-input-area">
+        <input type="text" id="agribot-input" placeholder="Ask about rice farming..." onkeypress="handleAgriBotEnter(event)">
+        <button id="agribot-send" onclick="sendAgriBotMessage()">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+</div>
+
+<style>
+/* AgriBot Styles */
+#agribot-launcher {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(45, 106, 79, 0.3);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+#agribot-launcher:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(45, 106, 79, 0.4);
+}
+
+#agribot-window {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 380px;
+    height: 500px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    display: none;
+    flex-direction: column;
+    z-index: 10000;
+    border: 1px solid #e9ecef;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.agribot-header {
+    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 15px 15px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    background-color: #52b788;
+    border-radius: 50%;
+    margin-left: 8px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.agribot-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.message {
+    display: flex;
+    max-width: 85%;
+}
+
+.message.user {
+    align-self: flex-end;
+}
+
+.message.bot {
+    align-self: flex-start;
+}
+
+.message-content {
+    padding: 12px 16px;
+    border-radius: 18px;
+    line-height: 1.4;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+.message.user .message-content {
+    background: #2d6a4f;
+    color: white;
+    border-bottom-right-radius: 5px;
+}
+
+.message.bot .message-content {
+    background: white;
+    color: #333;
+    border-bottom-left-radius: 5px;
+}
+
+.message-sender {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    opacity: 0.8;
+}
+
+.message-text {
+    word-wrap: break-word;
+}
+
+/* Formatting for bot responses */
+.message-text h3, .message-text h4 {
+    margin: 12px 0 8px 0;
+    color: #2d6a4f;
+    font-weight: 600;
+}
+
+.message-text h3 {
+    font-size: 1.1rem;
+}
+
+.message-text h4 {
+    font-size: 1rem;
+}
+
+.message-text p {
+    margin-bottom: 10px;
+}
+
+.message-text ul, .message-text ol {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.message-text li {
+    margin-bottom: 6px;
+}
+
+.message-text strong {
+    color: #2d6a4f;
+}
+
+.message-text .info-box {
+    background-color: #f1f8f5;
+    border-left: 3px solid #40916c;
+    padding: 10px 12px;
+    margin: 10px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.typing-dots {
+    display: flex;
+    margin-right: 8px;
+}
+
+.typing-dots span {
+    height: 8px;
+    width: 8px;
+    background-color: #6c757d;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 0 1px;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes typing {
+    0%, 80%, 100% { 
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% { 
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.agribot-input-area {
+    padding: 15px;
+    background: white;
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 15px 15px;
+    display: flex;
+    gap: 10px;
+}
+
+#agribot-input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    padding: 10px 15px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+#agribot-input:focus {
+    border-color: #40916c;
+}
+
+#agribot-send {
+    background: #40916c;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+}
+
+#agribot-send:hover {
+    background: #2d6a4f;
+}
+
+/* Scrollbar Styling */
+.agribot-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.agribot-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.agribot-messages::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.agribot-messages::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Responsive Design */
+@media (max-width: 576px) {
+    #agribot-window {
+        width: 320px;
+        height: 450px;
+        right: 10px;
+    }
+}
+</style>
+
+<script>
+// AgriBot Functions
+function toggleAgriBot() {
+    const agribotWindow = document.getElementById('agribot-window');
+    if (agribotWindow.style.display === 'none' || agribotWindow.style.display === '') {
+        agribotWindow.style.display = 'flex';
+        document.getElementById('agribot-input').focus();
+    } else {
+        agribotWindow.style.display = 'none';
+    }
+}
+
+function handleAgriBotEnter(event) {
+    if (event.key === 'Enter') {
+        sendAgriBotMessage();
+    }
+}
+
+async function sendAgriBotMessage() {
+    const inputField = document.getElementById("agribot-input");
+    const userMessage = inputField.value.trim();
+
+    if (!userMessage) return;
+
+    appendAgriBotMessage("user", userMessage);
+    inputField.value = "";
+
+    // Show typing indicator
+    document.getElementById("agribot-typing").style.display = "flex";
+
+    try {
+        const res = await fetch("/agribot-chat/", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRFToken()
+            },
+            body: JSON.stringify({ message: userMessage })
+        });
+
+        if (!res.ok) {
+            throw new Error(`Server responded with ${res.status}: ${res.statusText}`);
+        }
+
+        const data = await res.json();
+
+        // Hide typing indicator
+        document.getElementById("agribot-typing").style.display = "none";
+
+        // Format the response before displaying
+        const formattedResponse = formatBotResponse(data.response);
+        appendAgriBotMessage("bot", formattedResponse);
+
+    } catch (error) {
+        console.error("AgriBot Error:", error);
+        document.getElementById("agribot-typing").style.display = "none";
+        appendAgriBotMessage("bot", "⚠️ Error communicating with AgriBot. Please try again.");
+    }
+}
+
+function appendAgriBotMessage(sender, text) {
+    const messagesContainer = document.getElementById('agribot-messages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${sender}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    
+    if (sender === 'bot') {
+        const senderDiv = document.createElement('div');
+        senderDiv.className = 'message-sender';
+        senderDiv.textContent = 'AgriBot';
+        contentDiv.appendChild(senderDiv);
+    }
+    
+    const textDiv = document.createElement('div');
+    textDiv.className = 'message-text';
+    
+    // If the text is already HTML, use innerHTML, otherwise textContent
+    if (typeof text === 'string' && text.includes('<')) {
+        textDiv.innerHTML = text;
+    } else {
+        textDiv.textContent = text;
+    }
+    
+    contentDiv.appendChild(textDiv);
+    msgDiv.appendChild(contentDiv);
+    
+    messagesContainer.appendChild(msgDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function formatBotResponse(text) {
+    // If the response is already HTML, return as is
+    if (typeof text === 'string' && text.includes('<')) {
+        return text;
+    }
+    
+    // Format the text with proper HTML structure
+    let formattedText = text
+        // Convert numbered lists
+        .replace(/(\d+)\.\s+(.*?)(?=\n\d+\.|\n\n|$)/g, '<li>$2</li>')
+        // Convert asterisk lists
+        .replace(/\*\s+(.*?)(?=\n\*|\n\n|$)/g, '<li>$1</li>')
+        // Wrap lists in ul tags
+        .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+        // Convert headers (lines with **text**)
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Add paragraph breaks for long text
+        .replace(/\n\n/g, '</p><p>')
+        // Add line breaks for single newlines
+        .replace(/\n/g, '<br>');
+    
+    // Wrap in paragraph tags if needed
+    if (!formattedText.startsWith('<')) {
+        formattedText = '<p>' + formattedText + '</p>';
+    }
+    
+    return formattedText;
+}
+
+// Helper function to get CSRF token
+function getCSRFToken() {
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Initialize AgriBot when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('AgriBot initialized!');
+});
+</script>

@@ -1,0 +1,356 @@
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Sidebar Filters -->
+        <div class="col-lg-3 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Search Form -->
+                    <form method="GET" class="mb-4">
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control" placeholder="Search announcements..." 
+                                   value="{{ search_query }}">
+                            <button class="btn btn-success" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Priority Filter -->
+                    <h6 class="text-muted mb-3">Priority</h6>
+                    <div class="list-group list-group-flush mb-4">
+                        <a href="?{% if audience_filter %}audience={{ audience_filter }}&{% endif %}{% if search_query %}search={{ search_query }}&{% endif %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if not priority_filter %}active{% endif %}">
+                            All Priorities
+                            <span class="badge bg-secondary rounded-pill">{{ total_count }}</span>
+                        </a>
+                        <a href="?priority=urgent{% if audience_filter %}&audience={{ audience_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if priority_filter == 'urgent' %}active{% endif %}">
+                            <span><i class="fas fa-exclamation-circle text-danger me-2"></i>Urgent</span>
+                            <span class="badge bg-danger rounded-pill">{{ priority_counts.urgent }}</span>
+                        </a>
+                        <a href="?priority=high{% if audience_filter %}&audience={{ audience_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if priority_filter == 'high' %}active{% endif %}">
+                            <span><i class="fas fa-exclamation-triangle text-warning me-2"></i>High</span>
+                            <span class="badge bg-warning rounded-pill">{{ priority_counts.high }}</span>
+                        </a>
+                        <a href="?priority=normal{% if audience_filter %}&audience={{ audience_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if priority_filter == 'normal' %}active{% endif %}">
+                            <span><i class="fas fa-info-circle text-info me-2"></i>Normal</span>
+                            <span class="badge bg-info rounded-pill">{{ priority_counts.normal }}</span>
+                        </a>
+                        <a href="?priority=low{% if audience_filter %}&audience={{ audience_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if priority_filter == 'low' %}active{% endif %}">
+                            <span><i class="fas fa-arrow-down text-secondary me-2"></i>Low</span>
+                            <span class="badge bg-secondary rounded-pill">{{ priority_counts.low }}</span>
+                        </a>
+                    </div>
+
+                    <!-- Audience Filter -->
+                    <h6 class="text-muted mb-3">Audience</h6>
+                    <div class="list-group list-group-flush">
+                        <a href="?{% if priority_filter %}priority={{ priority_filter }}&{% endif %}{% if search_query %}search={{ search_query }}&{% endif %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if not audience_filter %}active{% endif %}">
+                            All Users
+                            <span class="badge bg-secondary rounded-pill">{{ total_count }}</span>
+                        </a>
+                        <a href="?audience=all{% if priority_filter %}&priority={{ priority_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if audience_filter == 'all' %}active{% endif %}">
+                            Everyone
+                            <span class="badge bg-primary rounded-pill">{{ audience_counts.all }}</span>
+                        </a>
+                        <a href="?audience=farmers{% if priority_filter %}&priority={{ priority_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if audience_filter == 'farmers' %}active{% endif %}">
+                            Farmers Only
+                            <span class="badge bg-success rounded-pill">{{ audience_counts.farmers }}</span>
+                        </a>
+                        <a href="?audience=experts{% if priority_filter %}&priority={{ priority_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if audience_filter == 'experts' %}active{% endif %}">
+                            Experts Only
+                            <span class="badge bg-warning rounded-pill">{{ audience_counts.experts }}</span>
+                        </a>
+                        <a href="?audience=both{% if priority_filter %}&priority={{ priority_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if audience_filter == 'both' %}active{% endif %}">
+                            Farmers & Experts
+                            <span class="badge bg-info rounded-pill">{{ audience_counts.both }}</span>
+                        </a>
+                    </div>
+
+                    <!-- Clear Filters -->
+                    {% if priority_filter or audience_filter or search_query %}
+                    <div class="mt-4">
+                        <a href="{% url 'announcement_feed' %}" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="fas fa-times me-1"></i>Clear All Filters
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Announcements Feed -->
+        <div class="col-lg-9">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0 text-success">
+                            <i class="fas fa-bullhorn me-2"></i>Municipal Announcements Feed
+                        </h4>
+                        <div>
+                            <span class="badge bg-success">{{ total_count }} announcements</span>
+                            <a href="{% url 'admin_announcements' %}" class="btn btn-outline-success btn-sm ms-2">
+                                <i class="fas fa-cog me-1"></i>Manage Announcements
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Active Filters Display -->
+                    {% if priority_filter or audience_filter or search_query %}
+                    <div class="mt-2">
+                        <small class="text-muted">Active filters:</small>
+                        {% if priority_filter %}
+                        <span class="badge bg-primary me-1">{{ priority_filter|title }} Priority</span>
+                        {% endif %}
+                        {% if audience_filter %}
+                        <span class="badge bg-info me-1">{{ audience_filter|title }} Audience</span>
+                        {% endif %}
+                        {% if search_query %}
+                        <span class="badge bg-secondary me-1">Search: "{{ search_query }}"</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-body">
+                    {% if announcements %}
+                    <div class="row">
+                        {% for announcement in announcements %}
+                        <div class="col-12 mb-4">
+                            <div class="card announcement-card border-{% if announcement.priority == 'urgent' %}danger{% elif announcement.priority == 'high' %}warning{% else %}success{% endif %} shadow-sm">
+                                {% if announcement.image %}
+                                <div class="image-container position-relative">
+                                    <img src="{{ announcement.image }}" 
+                                         class="card-img-top clickable-image" 
+                                         alt="{{ announcement.title }}" 
+                                         style="height: 250px; object-fit: cover; cursor: zoom-in;"
+                                         data-bs-toggle="modal" 
+                                         data-bs-target="#imageModal"
+                                         data-image-src="{{ announcement.image }}"
+                                         data-image-title="{{ announcement.title }}">
+                                    <div class="image-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+                                        <div class="bg-dark bg-opacity-50 rounded p-2">
+                                            <i class="fas fa-expand text-white fa-lg"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <h5 class="card-title mb-0">{{ announcement.title }}</h5>
+                                        <div class="d-flex gap-2">
+                                            <span class="badge bg-{% if announcement.priority == 'urgent' %}danger{% elif announcement.priority == 'high' %}warning{% elif announcement.priority == 'normal' %}info{% else %}secondary{% endif %}">
+                                                {{ announcement.get_priority_display }}
+                                            </span>
+                                            <span class="badge bg-dark">
+                                                {{ announcement.get_target_audience_display }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="card-text mb-3">
+                                        {{ announcement.content|linebreaks }}
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="text-muted small">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            Posted: {{ announcement.created_at|date:"M d, Y" }}
+                                            {% if announcement.start_date %}
+                                            • Starts: {{ announcement.start_date|date:"M d, Y" }}
+                                            {% endif %}
+                                            {% if announcement.end_date %}
+                                            • Ends: {{ announcement.end_date|date:"M d, Y" }}
+                                                {% if announcement.get_days_remaining %}
+                                                <span class="text-warning">({{ announcement.get_days_remaining }} days left)</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-muted small">
+                                            <i class="fas fa-eye me-1"></i>{{ announcement.views_count }} views
+                                            • <i class="fas fa-user me-1"></i>By {{ announcement.author.first_name }} {{ announcement.author.last_name }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-bullhorn fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No announcements found</h5>
+                        <p class="text-muted">
+                            {% if priority_filter or audience_filter or search_query %}
+                            Try adjusting your filters or search terms.
+                            {% else %}
+                            There are no active announcements at the moment. Check back later!
+                            {% endif %}
+                        </p>
+                        {% if not priority_filter and not audience_filter and not search_query %}
+                        <a href="{% url 'admin_announcements' %}" class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i>Create New Announcement
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- IMAGE MODAL -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalLabel">Announcement Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" class="img-fluid" alt="Announcement Image" style="max-height: 70vh; object-fit: contain;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a id="downloadImage" href="#" class="btn btn-success" download>
+                    <i class="fas fa-download me-1"></i>Download
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.announcement-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-left: 4px solid;
+}
+
+.announcement-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1) !important;
+}
+
+.list-group-item.active {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.card-img-top {
+    border-radius: 8px 8px 0 0;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+/* Custom colors for priority badges */
+.bg-urgent { background-color: #dc3545 !important; }
+.bg-high { background-color: #fd7e14 !important; }
+.bg-normal { background-color: #0dcaf0 !important; }
+.bg-low { background-color: #6c757d !important; }
+
+/* Image hover effects */
+.image-container {
+    overflow: hidden;
+    position: relative;
+}
+
+.clickable-image {
+    transition: transform 0.3s ease;
+}
+
+.clickable-image:hover {
+    transform: scale(1.02);
+}
+
+.image-overlay {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.image-container:hover .image-overlay {
+    opacity: 1;
+}
+
+/* Modal styling */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+}
+
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 15px 15px 0 0;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    border-radius: 0 0 15px 15px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-hide alerts
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            if (alert.classList.contains('show')) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }
+        }, 5000);
+    });
+
+    // Image Modal functionality
+    const imageModal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const downloadLink = document.getElementById('downloadImage');
+    const imageModalLabel = document.getElementById('imageModalLabel');
+
+    if (imageModal) {
+        imageModal.addEventListener('show.bs.modal', function (event) {
+            const clickedImage = event.relatedTarget;
+            const imageSrc = clickedImage.getAttribute('data-image-src');
+            const imageTitle = clickedImage.getAttribute('data-image-title');
+            
+            console.log('Opening image modal with:', imageSrc); // Debug
+            
+            // Set modal content
+            modalImage.src = imageSrc;
+            imageModalLabel.textContent = imageTitle;
+            downloadLink.href = imageSrc;
+            
+            // Set download filename
+            const fileName = imageTitle.toLowerCase().replace(/\s+/g, '-') + '.jpg';
+            downloadLink.setAttribute('download', fileName);
+        });
+
+        // Handle image loading errors
+        modalImage.addEventListener('error', function() {
+            console.error('Failed to load image:', this.src);
+            this.alt = 'Image not available';
+            this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+';
+        });
+    }
+});
+</script>
+{% endblock %}
