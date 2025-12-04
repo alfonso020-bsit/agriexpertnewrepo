@@ -1,169 +1,274 @@
 {% extends 'expert/base_expert.html' %}
 {% block content %}
 <div class="container mt-5">
-    <div class="feed-post shadow-sm p-4 rounded bg-white">
+    <div class="feed-post shadow-sm p-4 rounded bg-white position-relative">
+        <!-- Back Button -->
         <a href="{% url 'expert_experts' %}" class="back-float-btn" title="Bumalik">
             <i class="fas fa-arrow-left"></i>
         </a>
+        
+        <!-- Solution Badge -->
+        {% if solution_comment %}
+        <div class="position-absolute top-0 start-0 m-2">
+            <span class="badge bg-success">
+                <i class="fas fa-check"></i> Solved
+            </span>
+        </div>
+        {% endif %}
+        
+        <!-- Engagement Badge -->
+        <div class="position-absolute top-0 end-0 m-2">
+            <span class="badge bg-primary">
+                <i class="fas fa-fire"></i> {{ post_analytics.total_comments|add:post.get_upvotes_count }}
+            </span>
+        </div>
+        
         <div class="post-header d-flex align-items-center mb-3">
-            <img src="{{ post.expert.profile_picture }}" class="post-profile rounded-circle me-2">
-            <div>
-                <strong>{{ post.expert.first_name }} {{ post.expert.last_name }}</strong><br>
-                <small class="text-muted">Posted on {{ post.created_at }}</small>
+            {% if post.expert.profile_picture %}
+                <img src="{{ post.expert.profile_picture }}" class="post-profile rounded-circle me-2" alt="Expert Profile">
+            {% else %}
+                <div class="post-profile rounded-circle me-2 d-flex align-items-center justify-content-center bg-secondary text-white">
+                    <i class="fas fa-user"></i>
+                </div>
+            {% endif %}
+            <div class="flex-grow-1">
+                <strong>{{ post.expert.first_name }} {{ post.expert.last_name }}</strong>
+                <span class="badge bg-success ms-2">Expert</span>
+                <br>
+                <small class="text-muted">Posted on {{ post.created_at|date:"M d, Y H:i" }}</small>
             </div>
         </div>
 
         <h4 class="fw-bold">{{ post.title }}</h4>
         <p class="caption-text">{{ post.caption|linebreaksbr }}</p>
 
+        <!-- Post Images -->
         {% if images %}
             {% if images|length == 1 %}
-                <img src="{{ images.0.image_url }}" class="img-fluid rounded mb-2 single-image" alt="Post Image">
+                <img src="{{ images.0.image_url }}" class="img-fluid rounded mb-2 single-image" alt="Post Image" 
+                     data-bs-toggle="modal" data-bs-target="#imageModal1">
             {% else %}
                 <div class="row g-2">
                     {% for image in images %}
                         <div class="col-6 col-md-4">
-                            <img src="{{ image.image_url }}" class="img-fluid rounded multi-image" alt="Post Image">
+                            <img src="{{ image.image_url }}" class="img-fluid rounded multi-image" alt="Post Image"
+                                 data-bs-toggle="modal" data-bs-target="#imageModal{{ forloop.counter }}">
                         </div>
                     {% endfor %}
                 </div>
             {% endif %}
         {% endif %}
 
-        <div class="post-actions mt-3 d-flex gap-3">
-            <!-- Converted form to AJAX button -->
-            <button id="upvote-btn" 
-                    class="btn btn-sm {% if already_upvoted %}btn-success{% else %}btn-outline-secondary{% endif %}"
-                    data-post-id="{{ post.id }}"
-                    data-upvoted="{{ already_upvoted|yesno:'true,false' }}">
-                👍 <span id="upvote-count">{{ post.get_upvotes_count }}</span>
-            </button>
+        <!-- Post Stats -->
+        <div class="post-stats mt-3 d-flex align-items-center">
+            <span class="me-3"><i class="far fa-thumbs-up"></i> <span id="upvote-count">{{ post.get_upvotes_count }}</span> Upvotes</span>
+            <span class="me-3"><i class="far fa-comment"></i> {{ post_analytics.total_comments }} Comments</span>
+            {% if solution_comment %}
+                <span class="badge bg-success">
+                    <i class="fas fa-check"></i> Solved
+                </span>
+            {% else %}
+                <span class="badge bg-secondary">
+                    <i class="fas fa-clock"></i> Unsolved
+                </span>
+            {% endif %}
         </div>
 
         <hr>
 
+        <!-- Post Actions -->
+        <div class="post-actions mt-3 d-flex align-items-center">
+            <!-- Upvote Button -->
+            <button class="btn btn-sm me-2 upvote-btn" 
+                    data-post-id="{{ post.id }}" 
+                    id="upvote-btn"
+                    style="{% if already_upvoted %}background-color: #28a745; color: white; border-color: #28a745;{% else %}background-color: transparent; color: #28a745; border-color: #28a745;{% endif %}">
+                <i class="fas fa-thumbs-up me-1"></i>
+                <span id="upvote-text">{% if already_upvoted %}Upvoted{% else %}Upvote{% endif %}</span>
+            </button>
+            
+            <!-- Comment Toggle Button -->
+            <button class="btn btn-outline-primary btn-sm me-2 comment-toggle-btn" data-post-id="{{ post.id }}">
+                <i class="fas fa-comment me-1"></i>Comment
+            </button>
+        </div>
 
-        {% if solution_comment %}
-        <div class="mb-3 p-3 bg-success bg-opacity-10 border border-success rounded position-relative">
-            <div class="d-flex align-items-start">
-                <img src="{{ solution_comment.expert.profile_picture }}" class="rounded-circle me-2" alt="Expert Profile" style="width: 40px; height: 40px; object-fit: cover; border: 2px solid #28a745;">
-                <div>
-                    <strong>{{ solution_comment.expert.first_name }} {{ solution_comment.expert.last_name }}</strong>
-                    <small class="text-muted d-block">• {{ solution_comment.created_at|date:"M d, Y h:i A"  }}</small>
-                    <p style="text-align: justify;" class="mb-0">
-                        {{ solution_comment.content|linebreaksbr }}
-                    </p>
-                    <span class="badge bg-success mt-1">✅ Marked as Solution</span>
+        <!-- Quick Comment Form (initially hidden) -->
+        <div class="quick-comment-form mt-3" id="comment-form" style="display: none;">
+            <div class="d-flex mb-2 align-items-start">
+                <div class="flex-grow-1 position-relative">
+                    <textarea 
+                        class="form-control auto-expand" 
+                        placeholder="Write your comment here..." 
+                        id="comment-input"
+                        rows="1"
+                        style="resize: none; overflow: hidden; min-height: 40px; max-height: 150px; border-radius: 20px; padding: 10px 15px; border: 2px solid #dee2e6;"
+                    ></textarea>
+                    <div class="position-absolute bottom-0 end-0 p-2">
+                        <small class="text-muted comment-counter" id="comment-counter">0/500</small>
+                    </div>
                 </div>
+                <button class="btn btn-primary submit-comment-btn ms-2" data-post-id="{{ post.id }}" style="border-radius: 20px; padding: 10px 20px; height: 40px;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="text-end">
+                <button class="btn btn-sm btn-outline-secondary cancel-comment-btn" data-post-id="{{ post.id }}">
+                    Cancel
+                </button>
             </div>
         </div>
-        {% endif %}
 
-        {% for comment in other_comments %}
-        <div class="mb-2 p-2 bg-light rounded position-relative">
-            <div class="d-flex align-items-start">
-                <img src="{{ comment.expert.profile_picture }}" class="rounded-circle me-2" alt="Expert Profile" style="width: 40px; height: 40px; object-fit: cover; border: 2px solid #28a745;">
-                <div>
-                    <strong>{{ comment.expert.first_name }} {{ comment.expert.last_name }}</strong>
-                    <small class="text-muted d-block">• {{ comment.created_at|date:"M d, Y h:i A" }}</small>
-                    <p style="text-align: justify;" class="mb-0">
-                        {{ comment.content|linebreaksbr }}
-                    </p>
-
-                    {% if is_owner %}
-                        <form method="POST" action="{% url 'mark_comment_as_solution' comment.id %}" class="mt-2">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-success">
-                                ✅ Mark as Solution
-                            </button>
-                        </form>
-                    {% endif %}
+        <!-- Comments Section -->
+        <h6 class="fw-bold mb-3 mt-4">Comments ({{ post_analytics.total_comments }})</h6>
+        <div class="comments">
+            {% if solution_comment %}
+                <div class="solution-comment mb-3 p-3 border-start border-success border-3 bg-light rounded">
+                    <div class="d-flex align-items-start">
+                        {% if solution_comment.expert.profile_picture %}
+                            <img src="{{ solution_comment.expert.profile_picture }}" class="rounded-circle me-2" alt="Expert Profile" style="width: 40px; height: 40px; object-fit: cover; border: 2px solid #28a745;">
+                        {% else %}
+                            <div class="rounded-circle me-2 d-flex align-items-center justify-content-center bg-secondary text-white" style="width: 40px; height: 40px;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <strong>
+                                {{ solution_comment.expert.first_name }} {{ solution_comment.expert.last_name }}
+                                <span class="badge bg-success ms-2" id="solution-badge-{{ solution_comment.id }}">
+                                    <i class="fas fa-check"></i> Solution
+                                </span>
+                            </strong>
+                            <small class="text-muted d-block">• {{ solution_comment.created_at|date:"M d, Y H:i" }}</small>
+                            <p class="mb-0 mt-1" style="white-space: pre-line;">{{ solution_comment.content }}</p>
+                            
+                            <!-- Unmark Solution Button for Post Owner -->
+                            {% if is_owner and solution_comment.expert.id != post.expert.id %}
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            id="mark-solution-btn-{{ solution_comment.id }}"
+                                            onclick="markCommentAsSolution({{ solution_comment.id }}, {{ post.id }})">
+                                        <i class="fas fa-times me-1"></i>Unmark Solution
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
+            
+            {% for comment in other_comments %}
+                <div class="regular-comment mb-3 p-3 border-start border-secondary border-3 bg-light rounded" id="comment-{{ comment.id }}">
+                    <div class="d-flex align-items-start">
+                        {% if comment.expert.profile_picture %}
+                            <img src="{{ comment.expert.profile_picture }}" class="rounded-circle me-2" alt="Expert Profile" style="width: 40px; height: 40px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-circle me-2 d-flex align-items-center justify-content-center bg-secondary text-white" style="width: 40px; height: 40px;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <strong>{{ comment.expert.first_name }} {{ comment.expert.last_name }}</strong>
+                            <span class="badge bg-success ms-1">Expert</span>
+                            
+                            <!-- Solution badge (hidden for non-solution comments) -->
+                            <span class="badge bg-secondary d-none" id="solution-badge-{{ comment.id }}"></span>
+                            
+                            <small class="text-muted d-block">• {{ comment.created_at|date:"M d, Y H:i" }}</small>
+                            <p class="mb-0 mt-1" style="white-space: pre-line;">{{ comment.content }}</p>
+                            
+                            <!-- Mark as Solution Button for Post Owner -->
+                            {% if is_owner and comment.expert.id != post.expert.id %}
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-outline-success" 
+                                            id="mark-solution-btn-{{ comment.id }}"
+                                            onclick="markCommentAsSolution({{ comment.id }}, {{ post.id }})">
+                                        <i class="fas fa-check me-1"></i>Mark as Solution
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                {% if not solution_comment %}
+                    <p class="text-muted text-center py-3">No comments on this post yet.</p>
+                {% endif %}
+            {% endfor %}
         </div>
-        {% empty %}
-        <p class="text-muted">Wala pang komento sa post na ito.</p>
-        {% endfor %}
-
-        {% if allow_commenting %}
-        <form id="comment-form" method="POST" action="{% url 'comment_post' post.id %}" class="mt-3">
-            {% csrf_token %}
-            <div class="mb-2">
-                <textarea name="content" class="form-control" rows="2" placeholder="Mag-iwan ng komento..." required></textarea>
-            </div>
-            <button type="submit" class="btn btn-sm btn-success">I-submit ang Komento</button>
-        </form>
-        {% endif %}
     </div>
 </div>
 
-<!-- Added AJAX functionality for upvote -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const upvoteBtn = document.getElementById('upvote-btn');
-    const upvoteCount = document.getElementById('upvote-count');
-    
-    upvoteBtn.addEventListener('click', function() {
-        const postId = this.dataset.postId;
-        const isUpvoted = this.dataset.upvoted === 'true';
-        
-        // Disable button during request
-        upvoteBtn.disabled = true;
-        
-        fetch(`/upvote_post/${postId}/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update button appearance
-                if (data.already_upvoted) {
-                    upvoteBtn.className = 'btn btn-sm btn-success';
-                    upvoteBtn.dataset.upvoted = 'true';
-                } else {
-                    upvoteBtn.className = 'btn btn-sm btn-outline-secondary';
-                    upvoteBtn.dataset.upvoted = 'false';
-                }
-                
-                // Update count
-                upvoteCount.textContent = data.upvotes;
-            } else {
-                alert(data.message || 'May error sa pag-upvote');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('May error sa pag-upvote');
-        })
-        .finally(() => {
-            upvoteBtn.disabled = false;
-        });
-    });
-});
-</script>
+<!-- Image Modals -->
+{% if images %}
+    {% if images|length == 1 %}
+        <div class="modal fade" id="imageModal1" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-body p-0">
+                        <img src="{{ images.0.image_url }}" class="img-fluid w-100" alt="Full Image">
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        {% for image in images %}
+            <div class="modal fade" id="imageModal{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-body p-0">
+                            <img src="{{ image.image_url }}" class="img-fluid w-100" alt="Full Image">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endif %}
+
+<!-- CSRF token for AJAX requests -->
+{% csrf_token %}
 
 <style>
+/* Post styling */
 .post-profile {
     width: 50px;
     height: 50px;
     object-fit: cover;
     border: 2px solid #28a745;
 }
+
 .single-image {
     width: 100%;
     height: auto;
     max-height: 400px;
     object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.3s ease;
 }
+
+.single-image:hover {
+    transform: scale(1.01);
+}
+
 .multi-image {
     width: 100%;
     height: 200px;
     object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.3s ease;
 }
+
+.multi-image:hover {
+    transform: scale(1.03);
+}
+
+.caption-text {
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+/* Back button */
 .back-float-btn {
     position: fixed;
     bottom: 20px;
@@ -180,10 +285,718 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     transition: background-color 0.3s ease;
 }
+
 .back-float-btn:hover {
     background-color: #5a6268;
     text-decoration: none;
 }
+
+/* Comment form styles */
+.quick-comment-form {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.quick-comment-form:hover {
+    border-color: #28a745;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
+}
+
+.auto-expand {
+    transition: height 0.2s ease-out;
+    line-height: 1.4;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.auto-expand:focus {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+    outline: none;
+}
+
+.submit-comment-btn {
+    border-radius: 20px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.submit-comment-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.cancel-comment-btn {
+    border-radius: 15px;
+    padding: 5px 15px;
+    font-size: 12px;
+}
+
+/* Comments section styling */
+.comments {
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.comments::-webkit-scrollbar {
+    width: 6px;
+}
+
+.comments::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.comments::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.comments::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Character counter */
+.comment-counter {
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 2px 6px;
+    border-radius: 10px;
+    pointer-events: none;
+}
+
+/* Solution comment styling */
+.solution-comment {
+    background: linear-gradient(135deg, #d4edda 0%, #f8f9fa 100%);
+    border-color: #28a745 !important;
+}
+
+.regular-comment {
+    background: #f8f9fa;
+}
+
+/* Auto-expand scrollbar styling */
+.auto-expand::-webkit-scrollbar {
+    width: 6px;
+}
+
+.auto-expand::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.auto-expand::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.auto-expand::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
 </style>
+
+<script>
+// Get CSRF token helper function
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Function to mark comment as solution
+function markCommentAsSolution(commentId, postId) {
+    console.log(`Marking comment ${commentId} as solution for post ${postId}`);
+    
+    // Show loading state
+    const markSolutionBtn = document.querySelector(`#mark-solution-btn-${commentId}`);
+    if (markSolutionBtn) {
+        const originalText = markSolutionBtn.innerHTML;
+        markSolutionBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+        markSolutionBtn.disabled = true;
+    }
+    
+    fetch(`/mark_solution/${commentId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            return response.text().then(text => {
+                console.log('Non-JSON response:', text.substring(0, 200));
+                throw new Error('Server returned HTML instead of JSON. Might be a login redirect.');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response:', data);
+        
+        // Restore button state
+        if (markSolutionBtn) {
+            markSolutionBtn.disabled = false;
+        }
+        
+        if (data.success) {
+            // Show success message
+            showNotification(data.message, 'success');
+            
+            // Update UI elements
+            const solutionBadge = document.querySelector(`#solution-badge-${commentId}`);
+            const allSolutionBadges = document.querySelectorAll('[id^="solution-badge-"]');
+            const allSolutionButtons = document.querySelectorAll('[id^="mark-solution-btn-"]');
+            
+            if (data.is_solution) {
+                // This comment is now the solution
+                
+                // Update this comment's badge and button
+                if (solutionBadge) {
+                    solutionBadge.innerHTML = '<i class="fas fa-check me-1"></i>Solution';
+                    solutionBadge.classList.remove('bg-secondary', 'd-none');
+                    solutionBadge.classList.add('bg-success');
+                }
+                
+                if (markSolutionBtn) {
+                    markSolutionBtn.innerHTML = '<i class="fas fa-times me-1"></i>Unmark Solution';
+                    markSolutionBtn.classList.remove('btn-outline-success');
+                    markSolutionBtn.classList.add('btn-outline-danger');
+                }
+                
+                // Remove solution status from all other comments in this post
+                allSolutionBadges.forEach(badge => {
+                    const badgeCommentId = badge.id.split('-')[2];
+                    if (badgeCommentId != commentId) {
+                        badge.innerHTML = '';
+                        badge.classList.remove('bg-success');
+                        badge.classList.add('d-none');
+                    }
+                });
+                
+                allSolutionButtons.forEach(btn => {
+                    const btnCommentId = btn.id.split('-')[4];
+                    if (btnCommentId != commentId) {
+                        btn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Solution';
+                        btn.classList.remove('btn-outline-danger');
+                        btn.classList.add('btn-outline-success');
+                    }
+                });
+                
+                // Update the solved badge on the post
+                const postSolvedBadge = document.querySelector('.badge.bg-secondary');
+                if (postSolvedBadge && postSolvedBadge.innerHTML.includes('Unsolved')) {
+                    postSolvedBadge.classList.remove('bg-secondary');
+                    postSolvedBadge.classList.add('bg-success');
+                    postSolvedBadge.innerHTML = '<i class="fas fa-check"></i> Solved';
+                }
+                
+                // Reload the page after 1.5 seconds to show the solution comment at the top
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+                
+            } else {
+                // This comment is no longer a solution
+                
+                if (solutionBadge) {
+                    solutionBadge.innerHTML = '';
+                    solutionBadge.classList.remove('bg-success');
+                    solutionBadge.classList.add('d-none');
+                }
+                
+                if (markSolutionBtn) {
+                    markSolutionBtn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Solution';
+                    markSolutionBtn.classList.remove('btn-outline-danger');
+                    markSolutionBtn.classList.add('btn-outline-success');
+                }
+                
+                // Update the post badge back to unsolved
+                const postSolvedBadge = document.querySelector('.badge.bg-success');
+                if (postSolvedBadge && postSolvedBadge.innerHTML.includes('Solved')) {
+                    postSolvedBadge.classList.remove('bg-success');
+                    postSolvedBadge.classList.add('bg-secondary');
+                    postSolvedBadge.innerHTML = '<i class="fas fa-clock"></i> Unsolved';
+                }
+            }
+            
+        } else {
+            showNotification('Error: ' + data.error, 'error');
+            // Restore original button text on error
+            if (markSolutionBtn) {
+                if (markSolutionBtn.classList.contains('btn-outline-danger')) {
+                    markSolutionBtn.innerHTML = '<i class="fas fa-times me-1"></i>Unmark Solution';
+                } else {
+                    markSolutionBtn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Solution';
+                }
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (error.message.includes('login redirect')) {
+            showNotification('You need to log in again. Redirecting to login page...', 'error');
+            setTimeout(() => {
+                window.location.href = '/login/';
+            }, 2000);
+        } else {
+            showNotification('Error marking comment as solution. Please try again.', 'error');
+        }
+        
+        // Restore button on error
+        if (markSolutionBtn) {
+            markSolutionBtn.disabled = false;
+            if (markSolutionBtn.classList.contains('btn-outline-danger')) {
+                markSolutionBtn.innerHTML = '<i class="fas fa-times me-1"></i>Unmark Solution';
+            } else {
+                markSolutionBtn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Solution';
+            }
+        }
+    });
+}
+
+// Auto-expanding textarea functionality
+function autoExpandTextarea(textarea) {
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Calculate the new height (scrollHeight + border)
+    const newHeight = Math.min(textarea.scrollHeight, 150); // Max 150px
+    
+    // Set the new height
+    textarea.style.height = newHeight + 'px';
+    
+    // Update character counter
+    updateCharacterCounter(textarea);
+}
+
+// Update character counter
+function updateCharacterCounter(textarea) {
+    const counter = document.getElementById('comment-counter');
+    if (counter) {
+        const length = textarea.value.length;
+        counter.textContent = `${length}/500`;
+        
+        // Change color if approaching limit
+        if (length > 450) {
+            counter.classList.remove('text-muted');
+            counter.classList.add('text-warning');
+        } else if (length > 490) {
+            counter.classList.remove('text-warning');
+            counter.classList.add('text-danger');
+        } else {
+            counter.classList.remove('text-warning', 'text-danger');
+            counter.classList.add('text-muted');
+        }
+    }
+}
+
+// Function to toggle comment form with focus
+function toggleCommentForm(postId) {
+    const commentForm = document.getElementById('comment-form');
+    const commentInput = document.getElementById('comment-input');
+    
+    if (commentForm.style.display === 'none') {
+        commentForm.style.display = 'block';
+        setTimeout(() => {
+            if (commentInput) {
+                commentInput.focus();
+                autoExpandTextarea(commentInput);
+            }
+        }, 100);
+    } else {
+        commentForm.style.display = 'none';
+        if (commentInput) {
+            commentInput.value = '';
+            commentInput.style.height = '40px';
+            updateCharacterCounter(commentInput);
+        }
+    }
+}
+
+// Function to submit comment
+function submitComment(postId) {
+    const commentInput = document.getElementById('comment-input');
+    const content = commentInput.value.trim();
+    
+    if (!content) {
+        showNotification('Please enter a comment.', 'error');
+        commentInput.focus();
+        return;
+    }
+    
+    // Check character limit
+    if (content.length > 500) {
+        showNotification('Comment exceeds 500 character limit.', 'error');
+        commentInput.focus();
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = document.querySelector('.submit-comment-btn');
+    if (submitBtn) {
+        const originalHTML = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        submitBtn.disabled = true;
+    }
+    
+    console.log('Submitting comment for post:', postId);
+    console.log('Comment content:', content);
+    
+    // Send AJAX request
+    fetch(`/comment_post/${postId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ content: content })
+    })
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            return response.text().then(text => {
+                console.log('Non-JSON response:', text.substring(0, 200));
+                throw new Error('Server returned HTML instead of JSON. Might be a login redirect.');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        
+        if (data.success) {
+            // Clear input
+            commentInput.value = '';
+            commentInput.style.height = '40px';
+            updateCharacterCounter(commentInput);
+            
+            // Show success message
+            showNotification(data.message, 'success');
+            
+            // Hide comment form
+            document.getElementById('comment-form').style.display = 'none';
+            
+            // Add new comment to the comments section
+            addNewCommentToUI(data.comment);
+            
+            // Update comment count
+            updateCommentCount();
+            
+        } else {
+            showNotification('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        
+        if (error.message.includes('login redirect')) {
+            showNotification('You need to log in again. Redirecting to login page...', 'error');
+            setTimeout(() => {
+                window.location.href = '/login/';
+            }, 2000);
+        } else {
+            showNotification('Error adding comment. Please try again.', 'error');
+        }
+    })
+    .finally(() => {
+        // Restore button state
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            submitBtn.disabled = false;
+        }
+    });
+}
+
+// Function to add new comment to UI
+function addNewCommentToUI(commentData) {
+    const commentsContainer = document.querySelector('.comments');
+    
+    if (!commentsContainer) return;
+    
+    // Create new comment element
+    const newComment = document.createElement('div');
+    newComment.className = 'regular-comment mb-3 p-3 border-start border-secondary border-3 bg-light rounded';
+    newComment.id = `comment-${commentData.id}`;
+    
+    // Determine profile picture HTML
+    const profilePicture = commentData.expert.profile_picture ? 
+        `<img src="${commentData.expert.profile_picture}" class="rounded-circle me-2" alt="Expert Profile" style="width: 40px; height: 40px; object-fit: cover;">` :
+        `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center bg-secondary text-white" style="width: 40px; height: 40px;">
+            <i class="fas fa-user"></i>
+        </div>`;
+    
+    // Convert newlines to <br> tags for display
+    const formattedContent = commentData.content.replace(/\n/g, '<br>');
+    
+    // Check if current user is post owner
+    const isOwner = '{{ is_owner|yesno:"true,false" }}' === 'true';
+    const postExpertId = '{{ post.expert.id }}';
+    const commentExpertId = commentData.expert.id;
+    
+    let solutionButton = '';
+    if (isOwner && commentExpertId != postExpertId) {
+        solutionButton = `
+            <div class="mt-2">
+                <button class="btn btn-sm btn-outline-success" 
+                        id="mark-solution-btn-${commentData.id}"
+                        onclick="markCommentAsSolution(${commentData.id}, {{ post.id }})">
+                    <i class="fas fa-check me-1"></i>Mark as Solution
+                </button>
+            </div>
+        `;
+    }
+    
+    newComment.innerHTML = `
+        <div class="d-flex align-items-start">
+            ${profilePicture}
+            <div class="flex-grow-1">
+                <strong>${commentData.expert.first_name} ${commentData.expert.last_name}</strong>
+                <span class="badge bg-success ms-1">Expert</span>
+                <span class="badge bg-secondary d-none" id="solution-badge-${commentData.id}"></span>
+                <small class="text-muted d-block">• ${commentData.created_at}</small>
+                <p class="mb-0 mt-1" style="white-space: pre-line;">${formattedContent}</p>
+                ${solutionButton}
+            </div>
+        </div>
+    `;
+    
+    // Insert at the beginning of comments (after solution comment if exists)
+    const solutionComment = commentsContainer.querySelector('.solution-comment');
+    if (solutionComment) {
+        solutionComment.insertAdjacentElement('afterend', newComment);
+    } else {
+        const commentsHeading = commentsContainer.querySelector('h6');
+        if (commentsHeading) {
+            commentsHeading.insertAdjacentElement('afterend', newComment);
+        } else {
+            commentsContainer.insertBefore(newComment, commentsContainer.firstChild);
+        }
+    }
+    
+    // If there was "No comments" message, remove it
+    const noCommentsMsg = commentsContainer.querySelector('p.text-muted');
+    if (noCommentsMsg) {
+        noCommentsMsg.remove();
+    }
+}
+
+// Function to update comment count
+function updateCommentCount() {
+    // Update comment count display
+    const commentCountElements = document.querySelectorAll('[id*="comment-count"]');
+    
+    commentCountElements.forEach(element => {
+        const currentCount = parseInt(element.textContent) || 0;
+        element.textContent = currentCount + 1;
+    });
+    
+    // Update engagement badge
+    const engagementBadge = document.querySelector('.badge.bg-primary i.fa-fire');
+    if (engagementBadge && engagementBadge.parentElement) {
+        const currentEngagement = parseInt(engagementBadge.parentElement.textContent.trim().match(/\d+/)[0]) || 0;
+        engagementBadge.parentElement.innerHTML = `<i class="fas fa-fire"></i> ${currentEngagement + 1}`;
+    }
+}
+
+// Cancel comment function
+function cancelComment() {
+    const commentForm = document.getElementById('comment-form');
+    const commentInput = document.getElementById('comment-input');
+    
+    if (commentForm) commentForm.style.display = 'none';
+    if (commentInput) {
+        commentInput.value = '';
+        commentInput.style.height = '40px';
+        updateCharacterCounter(commentInput);
+    }
+}
+
+// Notification function
+function showNotification(message, type = 'info') {
+    // Remove any existing notification
+    const existingNotification = document.querySelector('.custom-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `custom-notification alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Comment toggle functionality
+    document.querySelectorAll('.comment-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const postId = this.getAttribute('data-post-id');
+            toggleCommentForm(postId);
+        });
+    });
+    
+    // Submit comment functionality
+    document.querySelectorAll('.submit-comment-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const postId = this.getAttribute('data-post-id');
+            submitComment(postId);
+        });
+    });
+    
+    // Cancel comment functionality
+    document.querySelectorAll('.cancel-comment-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            cancelComment();
+        });
+    });
+    
+    // Auto-expanding textarea functionality
+    document.querySelectorAll('.auto-expand').forEach(textarea => {
+        // Auto-expand on input
+        textarea.addEventListener('input', function() {
+            autoExpandTextarea(this);
+        });
+        
+        // Auto-expand on paste
+        textarea.addEventListener('paste', function(e) {
+            setTimeout(() => {
+                autoExpandTextarea(this);
+            }, 10);
+        });
+        
+        // Handle Enter key
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                if (e.ctrlKey || e.metaKey) {
+                    // Ctrl+Enter: Add new line
+                    e.preventDefault();
+                    const cursorPos = this.selectionStart;
+                    const textBefore = this.value.substring(0, cursorPos);
+                    const textAfter = this.value.substring(cursorPos);
+                    this.value = textBefore + '\n' + textAfter;
+                    this.selectionStart = this.selectionEnd = cursorPos + 1;
+                    autoExpandTextarea(this);
+                } else if (!e.shiftKey) {
+                    // Enter (without Shift): Submit
+                    e.preventDefault();
+                    const postId = this.closest('.feed-post').id.split('-')[2] || 
+                                  document.querySelector('[data-post-id]').getAttribute('data-post-id');
+                    submitComment(postId);
+                }
+            }
+        });
+        
+        // Handle backspace/delete to shrink textarea
+        textarea.addEventListener('keyup', function(e) {
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                setTimeout(() => {
+                    autoExpandTextarea(this);
+                }, 10);
+            }
+        });
+        
+        // Initialize character counter
+        updateCharacterCounter(textarea);
+    });
+
+    // AJAX Upvote functionality
+    document.querySelectorAll('.upvote-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const postId = this.getAttribute('data-post-id');
+            const upvoteBtn = document.getElementById('upvote-btn');
+            const upvoteText = document.getElementById('upvote-text');
+            const upvoteCount = document.getElementById('upvote-count');
+            
+            // Disable button during request
+            upvoteBtn.disabled = true;
+            
+            fetch(`/upvote_post/${postId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update upvote count
+                    upvoteCount.textContent = data.upvotes;
+                    
+                    // Update button appearance and text
+                    if (data.already_upvoted) {
+                        upvoteBtn.style.backgroundColor = '#28a745';
+                        upvoteBtn.style.color = 'white';
+                        upvoteBtn.style.borderColor = '#28a745';
+                        upvoteText.textContent = 'Upvoted';
+                    } else {
+                        upvoteBtn.style.backgroundColor = 'transparent';
+                        upvoteBtn.style.color = '#28a745';
+                        upvoteBtn.style.borderColor = '#28a745';
+                        upvoteText.textContent = 'Upvote';
+                    }
+                } else {
+                    console.error('Upvote failed:', data.message);
+                    showNotification('Failed to upvote: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while processing your upvote.', 'error');
+            })
+            .finally(() => {
+                // Re-enable button
+                upvoteBtn.disabled = false;
+            });
+        });
+    });
+
+    // Enable Bootstrap tooltips if needed
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 
 {% endblock %}

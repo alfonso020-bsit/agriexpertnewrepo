@@ -145,13 +145,23 @@
         <div class="card-body">
             <div class="feed-container">
                 {% for post in expert_posts %}
-                <div class="feed-post mb-4 shadow-sm p-3 rounded bg-white position-relative">
+                <!-- Add an ID to each feed post for easier targeting -->
+                    <div class="feed-post mb-4 shadow-sm p-3 rounded bg-white position-relative" id="feed-post-{{ post.id }}">
                     <!-- Engagement Badge -->
                     <div class="position-absolute top-0 end-0 m-2">
                         <span class="badge bg-primary">
                             <i class="fas fa-fire"></i> {{ post.upvote_count|add:post.comment_count }}
                         </span>
                     </div>
+                    
+                    <!-- Solution Badge -->
+                    {% if post.solution_comment %}
+                    <div class="position-absolute top-0 start-0 m-2">
+                        <span class="badge bg-success">
+                            <i class="fas fa-check"></i> Solved
+                        </span>
+                    </div>
+                    {% endif %}
                     
                     <div class="post-header d-flex align-items-center mb-3">
                         {% if post.expert.profile_picture %}
@@ -260,14 +270,40 @@
                             <i class="fas fa-thumbs-up me-1"></i>
                             <span id="upvote-text-{{ post.id }}">{% if post.already_upvoted %}Upvoted{% else %}Upvote{% endif %}</span>
                         </button>
-                        <a href="{% url 'view_post' post.id %}" class="btn btn-outline-primary btn-sm me-2">
+                        <button class="btn btn-outline-primary btn-sm me-2 comment-toggle-btn" data-post-id="{{ post.id }}">
                             <i class="fas fa-comment me-1"></i>Comment
-                        </a>
+                        </button>
                         <a href="{% url 'view_expertfromexpert' post.expert.id %}" class="btn btn-outline-secondary btn-sm">
                             <i class="fas fa-user me-1"></i>View Profile
                         </a>
                     </div>
                     {% endif %}
+                    
+                    <!-- Quick Comment Form (initially hidden) -->
+                    <div class="quick-comment-form mt-3" id="comment-form-{{ post.id }}" style="display: none;">
+                        <div class="d-flex mb-2 align-items-start">
+                            <div class="flex-grow-1 position-relative">
+                                <textarea 
+                                    class="form-control auto-expand" 
+                                    placeholder="Write your comment here..." 
+                                    id="comment-input-{{ post.id }}"
+                                    rows="1"
+                                    style="resize: none; overflow: hidden; min-height: 40px; max-height: 150px; border-radius: 20px; padding: 10px 15px; border: 2px solid #dee2e6;"
+                                ></textarea>
+                                <div class="position-absolute bottom-0 end-0 p-2">
+                                    <small class="text-muted comment-counter" id="comment-counter-{{ post.id }}">0/500</small>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary submit-comment-btn ms-2" data-post-id="{{ post.id }}" style="border-radius: 20px; padding: 10px 20px; height: 40px;">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-sm btn-outline-secondary cancel-comment-btn" data-post-id="{{ post.id }}">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
                     
                     <!-- Comments Section Preview -->
                     {% if post.comment_count > 0 %}
@@ -286,10 +322,22 @@
                                         <div class="flex-grow-1">
                                             <strong>
                                                 {{ post.solution_comment.expert.first_name }} {{ post.solution_comment.expert.last_name }}
-                                                <span class="badge bg-success ms-2">✔ Solution</span>
+                                                <span class="badge bg-success ms-2" id="solution-badge-{{ post.solution_comment.id }}">
+                                                    <i class="fas fa-check"></i> Solution
+                                                </span>
                                             </strong>
                                             <small class="text-muted d-block">• {{ post.solution_comment.created_at|date:"M d, Y H:i" }}</small>
                                             <p class="mb-0 mt-1">{{ post.solution_comment.content|linebreaksbr }}</p>
+                                            <!-- Mark as Solution button for solution comment -->
+                                            {% if request.session.user_id|add:"0" == post.expert.id and post.solution_comment.expert.id != post.expert.id %}
+                                                <div class="mt-2">
+                                                    <button class="btn btn-sm btn-outline-danger" 
+                                                            id="mark-solution-btn-{{ post.solution_comment.id }}"
+                                                            onclick="markCommentAsSolution({{ post.solution_comment.id }}, {{ post.id }})">
+                                                        <i class="fas fa-times me-1"></i>Unmark Solution
+                                                    </button>
+                                                </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -309,8 +357,23 @@
                                             <div>
                                                 <strong>{{ comment.expert.first_name }} {{ comment.expert.last_name }}</strong>
                                                 <span class="badge bg-success ms-1">Expert</span>
+                                                
+                                                <!-- Solution badge (initially hidden for non-solution comments) -->
+                                                <span class="badge bg-secondary d-none" id="solution-badge-{{ comment.id }}"></span>
+                                                
                                                 <small class="text-muted d-block">• {{ comment.created_at|date:"M d, Y H:i" }}</small>
                                                 <p class="mb-0 mt-1">{{ comment.content|linebreaksbr }}</p>
+                                                
+                                                <!-- Add Mark as Solution button for post owner -->
+                                                {% if request.session.user_id|add:"0" == post.expert.id and comment.expert.id != post.expert.id %}
+                                                    <div class="mt-2">
+                                                        <button class="btn btn-sm btn-outline-success" 
+                                                                id="mark-solution-btn-{{ comment.id }}"
+                                                                onclick="markCommentAsSolution({{ comment.id }}, {{ post.id }})">
+                                                            <i class="fas fa-check me-1"></i>Mark as Solution
+                                                        </button>
+                                                    </div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
@@ -509,9 +572,679 @@
 .expert-scroll-container::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
 }
+
+/* Solution button styles */
+.btn-outline-success {
+    color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-outline-success:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-outline-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+{% comment %} added {% endcomment %}
+/* Comment form styles */
+.quick-comment-form {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.quick-comment-form:hover {
+    border-color: #28a745;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
+}
+
+#comment-input-{{ post.id }} {
+    border-radius: 20px;
+    border: 2px solid #dee2e6;
+    padding: 10px 15px;
+    transition: all 0.3s ease;
+}
+
+#comment-input-{{ post.id }}:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.submit-comment-btn {
+    border-radius: 20px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.submit-comment-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.cancel-comment-btn {
+    border-radius: 15px;
+    padding: 5px 15px;
+    font-size: 12px;
+}
+
+/* Comments section styling */
+.comments {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.comments::-webkit-scrollbar {
+    width: 6px;
+}
+
+.comments::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.comments::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.comments::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+/* Auto-expanding textarea styles */
+.auto-expand {
+    transition: height 0.2s ease-out;
+    line-height: 1.4;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.auto-expand:focus {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+    outline: none;
+}
+
+/* Scrollbar styling for textarea */
+.auto-expand::-webkit-scrollbar {
+    width: 6px;
+}
+
+.auto-expand::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.auto-expand::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.auto-expand::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Character counter */
+.comment-counter {
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 2px 6px;
+    border-radius: 10px;
+    pointer-events: none;
+}
+
+/* Adjust submit button alignment */
+.submit-comment-btn {
+    align-self: flex-start;
+    margin-top: 0 !important;
+}
 </style>
 
 <script>
+// Get CSRF token helper function
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Function to mark comment as solution
+function markCommentAsSolution(commentId, postId) {
+    console.log(`Marking comment ${commentId} as solution for post ${postId}`);
+    
+    // Show loading state
+    const markSolutionBtn = document.querySelector(`#mark-solution-btn-${commentId}`);
+    if (markSolutionBtn) {
+        const originalText = markSolutionBtn.innerHTML;
+        markSolutionBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+        markSolutionBtn.disabled = true;
+    }
+    
+    fetch(`/mark_solution/${commentId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Response:', data);
+        
+        // Restore button state
+        if (markSolutionBtn) {
+            markSolutionBtn.disabled = false;
+        }
+        
+        if (data.success) {
+            // Show success message
+            showNotification(data.message, 'success');
+            
+            // Update UI elements
+            const solutionBadge = document.querySelector(`#solution-badge-${commentId}`);
+            const allSolutionBadges = document.querySelectorAll('[id^="solution-badge-"]');
+            const allSolutionButtons = document.querySelectorAll('[id^="mark-solution-btn-"]');
+            
+            if (data.is_solution) {
+                // This comment is now the solution
+                
+                // Update this comment's badge and button
+                if (solutionBadge) {
+                    solutionBadge.innerHTML = '<i class="fas fa-check me-1"></i>Solution';
+                    solutionBadge.classList.remove('bg-secondary', 'd-none');
+                    solutionBadge.classList.add('bg-success');
+                }
+                
+                if (markSolutionBtn) {
+                    markSolutionBtn.innerHTML = '<i class="fas fa-times me-1"></i>Unmark Solution';
+                    markSolutionBtn.classList.remove('btn-outline-success');
+                    markSolutionBtn.classList.add('btn-outline-danger');
+                }
+                
+                // Remove solution status from all other comments in this post
+                allSolutionBadges.forEach(badge => {
+                    const badgeCommentId = badge.id.split('-')[2];
+                    if (badgeCommentId != commentId) {
+                        badge.innerHTML = '';
+                        badge.classList.remove('bg-success');
+                        badge.classList.add('d-none');
+                    }
+                });
+                
+                allSolutionButtons.forEach(btn => {
+                    const btnCommentId = btn.id.split('-')[4];
+                    if (btnCommentId != commentId) {
+                        btn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Solution';
+                        btn.classList.remove('btn-outline-danger');
+                        btn.classList.add('btn-outline-success');
+                    }
+                });
+                
+                // Update the solved badge on the post
+                const postSolvedBadge = document.querySelector(`.feed-post:has(#mark-solution-btn-${commentId}) .badge.bg-secondary`);
+                if (postSolvedBadge) {
+                    postSolvedBadge.classList.remove('bg-secondary');
+                    postSolvedBadge.classList.add('bg-success');
+                    postSolvedBadge.innerHTML = '<i class="fas fa-check"></i> Solved';
+                }
+                
+                // Reload the page after 1.5 seconds to show the solution comment at the top
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+                
+            } else {
+                // This comment is no longer a solution
+                
+                if (solutionBadge) {
+                    solutionBadge.innerHTML = '';
+                    solutionBadge.classList.remove('bg-success');
+                    solutionBadge.classList.add('d-none');
+                }
+                
+                if (markSolutionBtn) {
+                    markSolutionBtn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Solution';
+                    markSolutionBtn.classList.remove('btn-outline-danger');
+                    markSolutionBtn.classList.add('btn-outline-success');
+                }
+                
+                // Update the post badge back to unsolved
+                const postSolvedBadge = document.querySelector(`.feed-post:has(#mark-solution-btn-${commentId}) .badge.bg-success`);
+                if (postSolvedBadge && postSolvedBadge.innerHTML.includes('Solved')) {
+                    postSolvedBadge.classList.remove('bg-success');
+                    postSolvedBadge.classList.add('bg-secondary');
+                    postSolvedBadge.innerHTML = '<i class="fas fa-clock"></i> Unsolved';
+                }
+            }
+            
+        } else {
+            showNotification('Error: ' + data.error, 'error');
+            // Restore original button text on error
+            if (markSolutionBtn) {
+                if (markSolutionBtn.classList.contains('btn-outline-danger')) {
+                    markSolutionBtn.innerHTML = '<i class="fas fa-times me-1"></i>Unmark Solution';
+                } else {
+                    markSolutionBtn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Solution';
+                }
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error marking comment as solution. Please try again.', 'error');
+        
+        // Restore button on error
+        if (markSolutionBtn) {
+            markSolutionBtn.disabled = false;
+            if (markSolutionBtn.classList.contains('btn-outline-danger')) {
+                markSolutionBtn.innerHTML = '<i class="fas fa-times me-1"></i>Unmark Solution';
+            } else {
+                markSolutionBtn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Solution';
+            }
+        }
+    });
+}
+
+// Auto-expanding textarea functionality
+function autoExpandTextarea(textarea) {
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Calculate the new height (scrollHeight + border)
+    const newHeight = Math.min(textarea.scrollHeight, 150); // Max 150px
+    
+    // Set the new height
+    textarea.style.height = newHeight + 'px';
+    
+    // Update character counter
+    updateCharacterCounter(textarea);
+}
+
+// Update character counter
+function updateCharacterCounter(textarea) {
+    const postId = textarea.id.split('-')[2];
+    const counter = document.getElementById(`comment-counter-${postId}`);
+    if (counter) {
+        const length = textarea.value.length;
+        counter.textContent = `${length}/500`;
+        
+        // Change color if approaching limit
+        if (length > 450) {
+            counter.classList.remove('text-muted');
+            counter.classList.add('text-warning');
+        } else if (length > 490) {
+            counter.classList.remove('text-warning');
+            counter.classList.add('text-danger');
+        } else {
+            counter.classList.remove('text-warning', 'text-danger');
+            counter.classList.add('text-muted');
+        }
+    }
+}
+
+// Function to toggle comment form with focus
+function toggleCommentForm(postId) {
+    const commentForm = document.getElementById(`comment-form-${postId}`);
+    const commentInput = document.getElementById(`comment-input-${postId}`);
+    
+    if (commentForm.style.display === 'none') {
+        commentForm.style.display = 'block';
+        setTimeout(() => {
+            if (commentInput) {
+                commentInput.focus();
+                // Trigger auto-expand on focus
+                autoExpandTextarea(commentInput);
+            }
+        }, 100);
+    } else {
+        commentForm.style.display = 'none';
+        if (commentInput) {
+            commentInput.value = '';
+            // Reset height
+            commentInput.style.height = '40px';
+            // Reset counter
+            updateCharacterCounter(commentInput);
+        }
+    }
+}
+
+// Function to submit comment (updated for textarea)
+function submitComment(postId) {
+    const commentInput = document.getElementById(`comment-input-${postId}`);
+    const content = commentInput.value.trim();
+    
+    if (!content) {
+        showNotification('Please enter a comment.', 'error');
+        commentInput.focus();
+        return;
+    }
+    
+    // Check character limit
+    if (content.length > 500) {
+        showNotification('Comment exceeds 500 character limit.', 'error');
+        commentInput.focus();
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = document.querySelector(`.submit-comment-btn[data-post-id="${postId}"]`);
+    if (submitBtn) {
+        const originalHTML = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        submitBtn.disabled = true;
+    }
+    
+    console.log('Submitting comment for post:', postId);
+    console.log('Comment content:', content);
+    console.log('CSRF Token:', getCookie('csrftoken'));
+    
+    // Send AJAX request
+    fetch(`/comment_post/${postId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ content: content })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        // First check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            // Not JSON, read as text to see what we got
+            return response.text().then(text => {
+                console.log('Non-JSON response:', text.substring(0, 200));
+                throw new Error('Server returned HTML instead of JSON. Might be a login redirect.');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        
+        if (data.success) {
+            // Clear input
+            commentInput.value = '';
+            // Reset textarea height
+            commentInput.style.height = '40px';
+            // Reset counter
+            updateCharacterCounter(commentInput);
+            
+            // Show success message
+            showNotification(data.message, 'success');
+            
+            // Hide comment form
+            document.getElementById(`comment-form-${postId}`).style.display = 'none';
+            
+            // Add new comment to the comments section
+            addNewCommentToUI(postId, data.comment);
+            
+            // Update comment count
+            updateCommentCount(postId);
+            
+        } else {
+            showNotification('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        
+        if (error.message.includes('login redirect')) {
+            showNotification('You need to log in again. Redirecting to login page...', 'error');
+            setTimeout(() => {
+                window.location.href = '/login/';
+            }, 2000);
+        } else {
+            showNotification('Error adding comment. Please try again.', 'error');
+        }
+    })
+    .finally(() => {
+        // Restore button state
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            submitBtn.disabled = false;
+        }
+    });
+}
+
+// Cancel comment function
+function cancelComment(postId) {
+    const commentForm = document.getElementById(`comment-form-${postId}`);
+    const commentInput = document.getElementById(`comment-input-${postId}`);
+    
+    if (commentForm) commentForm.style.display = 'none';
+    if (commentInput) {
+        commentInput.value = '';
+        // Reset height
+        commentInput.style.height = '40px';
+        // Reset counter
+        updateCharacterCounter(commentInput);
+    }
+}
+
+
+// Function to toggle comment form
+function toggleCommentForm(postId) {
+    const commentForm = document.getElementById(`comment-form-${postId}`);
+    const commentInput = document.getElementById(`comment-input-${postId}`);
+    
+    if (commentForm.style.display === 'none') {
+        commentForm.style.display = 'block';
+        if (commentInput) commentInput.focus();
+    } else {
+        commentForm.style.display = 'none';
+        if (commentInput) commentInput.value = '';
+    }
+}
+
+// Function to submit comment
+function submitComment(postId) {
+    const commentInput = document.getElementById(`comment-input-${postId}`);
+    const content = commentInput.value.trim();
+    
+    if (!content) {
+        showNotification('Please enter a comment.', 'error');
+        commentInput.focus();
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = document.querySelector(`.submit-comment-btn[data-post-id="${postId}"]`);
+    if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        submitBtn.disabled = true;
+    }
+    
+    // Send AJAX request
+    fetch(`/comment_post/${postId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ content: content })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Clear input
+            commentInput.value = '';
+            
+            // Show success message
+            showNotification(data.message, 'success');
+            
+            // Hide comment form
+            document.getElementById(`comment-form-${postId}`).style.display = 'none';
+            
+            // Add new comment to the comments section
+            addNewCommentToUI(postId, data.comment);
+            
+            // Update comment count
+            updateCommentCount(postId);
+            
+        } else {
+            showNotification('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error adding comment. Please try again.', 'error');
+    })
+    .finally(() => {
+        // Restore button state
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            submitBtn.disabled = false;
+        }
+    });
+}
+
+// Function to add new comment to UI (updated for line breaks)
+function addNewCommentToUI(postId, commentData) {
+    const commentsContainer = document.querySelector(`#feed-post-${postId} .comments`) || 
+                             document.querySelector(`.feed-post:has(#comment-input-${postId}) .comments`);
+    
+    if (!commentsContainer) return;
+    
+    // Create new comment element
+    const newComment = document.createElement('div');
+    newComment.className = 'regular-comment mb-2 p-2 border-start border-secondary border-3 bg-light rounded';
+    newComment.id = `comment-${commentData.id}`;
+    
+    // Determine profile picture HTML
+    const profilePicture = commentData.expert.profile_picture ? 
+        `<img src="${commentData.expert.profile_picture}" class="rounded-circle me-2" alt="Expert Profile" style="width: 35px; height: 35px; object-fit: cover;">` :
+        `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center bg-secondary text-white" style="width: 35px; height: 35px;">
+            <i class="fas fa-user"></i>
+        </div>`;
+    
+    // Convert newlines to <br> tags for display
+    const formattedContent = commentData.content.replace(/\n/g, '<br>');
+    
+    newComment.innerHTML = `
+        <div class="d-flex align-items-start">
+            ${profilePicture}
+            <div style="flex: 1; min-width: 0;">
+                <strong>${commentData.expert.first_name} ${commentData.expert.last_name}</strong>
+                <span class="badge bg-success ms-1">Expert</span>
+                <span class="badge bg-secondary d-none" id="solution-badge-${commentData.id}"></span>
+                <small class="text-muted d-block">• ${commentData.created_at}</small>
+                <p class="mb-0 mt-1" style="white-space: pre-line; word-wrap: break-word;">${formattedContent}</p>
+            </div>
+        </div>
+    `;
+    
+    // Insert at the beginning of comments (after solution comment if exists)
+    const solutionComment = commentsContainer.querySelector('.solution-comment');
+    if (solutionComment) {
+        solutionComment.insertAdjacentElement('afterend', newComment);
+    } else {
+        const commentsHeading = commentsContainer.querySelector('h6');
+        if (commentsHeading) {
+            commentsHeading.insertAdjacentElement('afterend', newComment);
+        } else {
+            commentsContainer.insertBefore(newComment, commentsContainer.firstChild);
+        }
+    }
+    
+    // If there was "No comments" message, remove it
+    const noCommentsMsg = commentsContainer.querySelector('p.text-muted');
+    if (noCommentsMsg) {
+        noCommentsMsg.remove();
+    }
+}
+
+// Function to update comment count
+function updateCommentCount(postId) {
+    // Find all comment count elements for this post
+    const commentCountElements = document.querySelectorAll(`[id*="comment-count-${postId}"]`);
+    
+    commentCountElements.forEach(element => {
+        const currentCount = parseInt(element.textContent) || 0;
+        element.textContent = currentCount + 1;
+    });
+    
+    // Also update engagement badge
+    const engagementBadge = document.querySelector(`.feed-post:has(#comment-input-${postId}) .badge.bg-primary i.fa-fire`);
+    if (engagementBadge && engagementBadge.parentElement) {
+        const currentEngagement = parseInt(engagementBadge.parentElement.textContent.trim().match(/\d+/)[0]) || 0;
+        engagementBadge.parentElement.innerHTML = `<i class="fas fa-fire"></i> ${currentEngagement + 1}`;
+    }
+}
+
+// Cancel comment
+function cancelComment(postId) {
+    const commentForm = document.getElementById(`comment-form-${postId}`);
+    const commentInput = document.getElementById(`comment-input-${postId}`);
+    
+    if (commentForm) commentForm.style.display = 'none';
+    if (commentInput) commentInput.value = '';
+}
+
+// Notification function
+function showNotification(message, type = 'info') {
+    // Remove any existing notification
+    const existingNotification = document.querySelector('.custom-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `custom-notification alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Add smooth scrolling to expert container
     const expertContainer = document.querySelector('.expert-scroll-container');
@@ -545,6 +1278,81 @@ document.addEventListener('DOMContentLoaded', function() {
             expertContainer.scrollLeft = scrollLeft - walk;
         });
     }
+
+    // Comment toggle functionality
+    document.querySelectorAll('.comment-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const postId = this.getAttribute('data-post-id');
+            toggleCommentForm(postId);
+        });
+    });
+    
+    // Submit comment functionality
+    document.querySelectorAll('.submit-comment-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const postId = this.getAttribute('data-post-id');
+            submitComment(postId);
+        });
+    });
+    
+    // Cancel comment functionality
+    document.querySelectorAll('.cancel-comment-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const postId = this.getAttribute('data-post-id');
+            cancelComment(postId);
+        });
+    });
+    
+    // Auto-expanding textarea functionality
+    document.querySelectorAll('.auto-expand').forEach(textarea => {
+        // Auto-expand on input
+        textarea.addEventListener('input', function() {
+            autoExpandTextarea(this);
+        });
+        
+        // Auto-expand on paste
+        textarea.addEventListener('paste', function(e) {
+            // Wait a bit for paste to complete
+            setTimeout(() => {
+                autoExpandTextarea(this);
+            }, 10);
+        });
+        
+        // Handle Enter key (submit on Ctrl+Enter, new line on Shift+Enter, normal Enter submits)
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                if (e.ctrlKey || e.metaKey) {
+                    // Ctrl+Enter: Add new line
+                    e.preventDefault();
+                    const cursorPos = this.selectionStart;
+                    const textBefore = this.value.substring(0, cursorPos);
+                    const textAfter = this.value.substring(cursorPos);
+                    this.value = textBefore + '\n' + textAfter;
+                    this.selectionStart = this.selectionEnd = cursorPos + 1;
+                    autoExpandTextarea(this);
+                } else if (!e.shiftKey) {
+                    // Enter (without Shift): Submit
+                    e.preventDefault();
+                    const postId = this.id.split('-')[2];
+                    submitComment(postId);
+                }
+                // Shift+Enter: Default behavior (new line)
+            }
+        });
+        
+        // Handle backspace/delete to shrink textarea
+        textarea.addEventListener('keyup', function(e) {
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                // Give a small delay for the content to update
+                setTimeout(() => {
+                    autoExpandTextarea(this);
+                }, 10);
+            }
+        });
+        
+        // Initialize character counter
+        updateCharacterCounter(textarea);
+    });
 
     // AJAX Upvote functionality
     document.querySelectorAll('.upvote-btn').forEach(button => {
@@ -584,12 +1392,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 } else {
                     console.error('Upvote failed:', data.message);
-                    alert('Failed to upvote: ' + data.message);
+                    showNotification('Failed to upvote: ' + data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while processing your upvote.');
+                showNotification('An error occurred while processing your upvote.', 'error');
             })
             .finally(() => {
                 // Re-enable button

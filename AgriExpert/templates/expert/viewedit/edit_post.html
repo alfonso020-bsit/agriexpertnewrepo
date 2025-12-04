@@ -5,6 +5,9 @@
     <h2 class="text-success mb-4 fw-bold">I-edit ang Expert Post</h2>
     <form id="postForm" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
+        
+        <!-- Hidden field for deleted images -->
+        <input type="hidden" name="deleted_images" id="deleted_images" value="">
 
         <!-- Pamagat -->
         <div class="form-group mb-3">
@@ -21,15 +24,16 @@
         <!-- Mga Larawan na Na-upload Na -->
         <div class="form-group mb-3">
             <label class="form-label text-success fw-semibold">Mga Na-upload na Larawan:</label>
-            <div class="d-flex flex-wrap gap-2">
+            <div class="d-flex flex-wrap gap-2" id="existing-images-container">
                 {% for image in post.images.all %}
-                    <div class="position-relative">
-                        <img src="{{ image.image_url }}" style="max-width: 100px;" class="border border-success rounded">
+                    <div class="position-relative existing-image" data-image-id="{{ image.id }}">
+                        <img src="{{ image.image_url }}" style="max-width: 100px; height: 100px; object-fit: cover;" 
+                             class="border border-success rounded" alt="Existing image">
                         <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 delete-existing-image"
-                            data-image-id="{{ image.id }}" style="border-radius: 50%;">&times;</button>
+                            data-image-id="{{ image.id }}" style="border-radius: 50%; width: 24px; height: 24px; font-size: 12px; padding: 0;">&times;</button>
                     </div>
                 {% empty %}
-                    <p>Walang na-upload na larawan.</p>
+                    <p class="text-muted">Walang na-upload na larawan.</p>
                 {% endfor %}
             </div>
         </div>
@@ -38,6 +42,7 @@
         <div class="form-group mb-3">
             <label for="imageInput" class="form-label text-success fw-semibold">Mag-upload ng Mga Bagong Larawan (Hanggang 4):</label>
             <input type="file" id="imageInput" class="form-control border-success" accept="image/*" multiple>
+            <small class="form-text text-muted">Pwede kang mag-upload ng hanggang 4 na larawan sa kabuuan.</small>
             <div id="image-preview" class="d-flex flex-wrap mt-3 gap-2"></div>
         </div>
 
@@ -45,9 +50,26 @@
         <div id="hidden-images-container"></div>
 
         <!-- Mga Button -->
-        <button type="submit" class="btn btn-success">💾 I-save ang Mga Pagbabago</button>
-        <a href="{% url 'expert_collaboration' %}" class="btn btn-secondary">Kanselahin</a>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success" id="submitBtn">
+                <i class="fas fa-save me-1"></i>💾 I-save ang Mga Pagbabago
+            </button>
+            <a href="{% url 'expert_collaboration' %}" class="btn btn-secondary" id="cancelBtn">
+                <i class="fas fa-times me-1"></i>Kanselahin
+            </a>
+        </div>
     </form>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5 class="mt-3 text-white">Ina-update ang post...</h5>
+        <p class="text-light">Pakihintay sandali</p>
+    </div>
 </div>
 
 <!-- Modal Confirmation for Deleting Image -->
@@ -62,115 +84,386 @@
                 Sigurado ka bang nais mong tanggalin ang larawang ito?
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Oo, Tanggalin</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hindi</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="fas fa-trash me-1"></i>Oo, Tanggalin
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Hindi
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Image Preview Modal -->
-<div class="modal fade" id="imageViewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content bg-dark">
-        <div class="modal-body p-0">
-          <img id="modalPreviewImage" src="" class="w-100" style="object-fit: contain; max-height: 90vh;">
-        </div>
-      </div>
-    </div>
-  </div>
+<style>
+/* Add some styling for better UX */
+.existing-image {
+    transition: all 0.3s ease;
+}
+
+.existing-image:hover {
+    transform: scale(1.05);
+}
+
+#image-preview img {
+    height: 100px;
+    object-fit: cover;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+/* Loading Overlay Styles */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.loading-content {
+    text-align: center;
+    background: rgba(40, 167, 69, 0.9);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Pulse animation for spinner */
+.spinner-border {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Disable form elements during loading */
+.loading-overlay-active form * {
+    pointer-events: none !important;
+}
+
+.loading-overlay-active .btn {
+    opacity: 0.7;
+}
+
+/* File upload loading state */
+#imageInput:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+</style>
 
 <script>
-    let selectedImages = [];
-    let maxImages = 4 - document.querySelectorAll('.delete-existing-image').length;
-
-    // Delete image with modal confirmation
-    let deleteImageBtn = null;
-    document.querySelectorAll('.delete-existing-image').forEach(btn => {
-        btn.addEventListener('click', (event) => {
-            // Store the clicked delete button to use in the confirmation modal
-            deleteImageBtn = event.target;
-            
-            // Show the modal
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            deleteModal.show();
-        });
-    });
-    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-        if (deleteImageBtn) {
-            const imgDiv = deleteImageBtn.parentElement;
-            imgDiv.remove();
-            maxImages--; // Adjust max count of images
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
         }
-    
-        // Properly close the already shown modal
-        const deleteModalEl = document.getElementById('deleteModal');
-        const deleteModalInstance = bootstrap.Modal.getInstance(deleteModalEl);
-        deleteModalInstance.hide();
-    });
-
-    document.getElementById('imageInput').addEventListener('change', function(event) {
-        const files = Array.from(event.target.files);
-
-        if ((selectedImages.length + files.length + document.querySelectorAll('.delete-existing-image').length) > 4) {
-            alert(`Hanggang 4 na larawan lang ang pinapayagan (kasama ang dati).`);
-            event.target.value = '';
-            return;
-        }
-
-        files.forEach((file) => {
-            selectedImages.push(file);
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const previewDiv = document.getElementById('image-preview');
-
-                const wrapper = document.createElement('div');
-                wrapper.style.position = 'relative';
-
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.style.maxWidth = '100px';
-                img.className = 'border border-success rounded';
-
-                const delBtn = document.createElement('button');
-                delBtn.innerHTML = '&times;';
-                delBtn.type = 'button';
-                delBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0';
-                delBtn.style.borderRadius = '50%';
-                delBtn.onclick = () => {
-                    previewDiv.removeChild(wrapper);
-                    selectedImages = selectedImages.filter(imgFile => imgFile !== file);
-                    updateHiddenInputs();
-                };
-
-                wrapper.appendChild(img);
-                wrapper.appendChild(delBtn);
-                previewDiv.appendChild(wrapper);
-            };
-            reader.readAsDataURL(file);
-        });
-
-        updateHiddenInputs();
-        event.target.value = '';
-    });
-
-    function updateHiddenInputs() {
-        const container = document.getElementById('hidden-images-container');
-        container.innerHTML = '';
-
-        selectedImages.forEach((file) => {
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.name = 'images';
-            input.className = 'd-none';
-            input.files = dataTransfer.files;
-
-            container.appendChild(input);
-        });
     }
+    return cookieValue;
+}
+
+let selectedImages = [];
+let deletedImageIds = [];
+let currentImageToDelete = null;
+
+// Function to show loading overlay
+function showLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = 'flex';
+    document.body.classList.add('loading-overlay-active');
+    
+    // Disable form elements
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('cancelBtn').classList.add('disabled');
+    document.getElementById('imageInput').disabled = true;
+    
+    // Change button text
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Ina-update...';
+    
+    console.log('Loading overlay shown');
+}
+
+// Function to hide loading overlay
+function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = 'none';
+    document.body.classList.remove('loading-overlay-active');
+    
+    // Re-enable form elements
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('cancelBtn').classList.remove('disabled');
+    document.getElementById('imageInput').disabled = false;
+    
+    // Restore button text
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>💾 I-save ang Mga Pagbabago';
+    
+    console.log('Loading overlay hidden');
+}
+
+// Function to show error loading
+function showErrorLoading(message) {
+    const overlay = document.getElementById('loadingOverlay');
+    const content = overlay.querySelector('.loading-content');
+    
+    // Change to error state
+    content.innerHTML = `
+        <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Error</span>
+        </div>
+        <h5 class="mt-3 text-white">May Error</h5>
+        <p class="text-light">${message || 'May naganap na error. Pakisubukan muli.'}</p>
+        <button class="btn btn-light mt-2" onclick="hideLoading()">Ituloy</button>
+    `;
+}
+
+// Function to calculate max images allowed
+function calculateMaxImages() {
+    const existingImages = document.querySelectorAll('.existing-image:not(.marked-for-delete)').length;
+    return 4 - existingImages - selectedImages.length;
+}
+
+// Delete existing image with confirmation modal
+document.querySelectorAll('.delete-existing-image').forEach(btn => {
+    btn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const imageId = event.target.getAttribute('data-image-id');
+        const imageDiv = event.target.closest('.existing-image');
+        
+        currentImageToDelete = {
+            id: imageId,
+            element: imageDiv
+        };
+        
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    });
+});
+
+// Handle confirmation of deletion
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (currentImageToDelete) {
+        const { id, element } = currentImageToDelete;
+        
+        // Add to deleted images list
+        deletedImageIds.push(id);
+        document.getElementById('deleted_images').value = deletedImageIds.join(',');
+        
+        // Visual feedback
+        element.classList.add('marked-for-delete');
+        element.style.opacity = '0.5';
+        element.style.filter = 'grayscale(100%)';
+        
+        const deleteBtn = element.querySelector('.delete-existing-image');
+        if (deleteBtn) {
+            deleteBtn.style.display = 'none';
+        }
+        
+        console.log('Image marked for deletion:', id);
+    }
+    
+    // Close modal
+    const deleteModalEl = document.getElementById('deleteModal');
+    const deleteModalInstance = bootstrap.Modal.getInstance(deleteModalEl);
+    deleteModalInstance.hide();
+    
+    currentImageToDelete = null;
+    
+    // Update max images calculation
+    const maxImages = calculateMaxImages();
+    console.log('Max images allowed now:', maxImages);
+});
+
+// Handle new image uploads
+document.getElementById('imageInput').addEventListener('change', function(event) {
+    const files = Array.from(event.target.files);
+    const maxAllowed = calculateMaxImages();
+    
+    if (files.length > maxAllowed) {
+        alert(`Pwede lang magdagdag ng hanggang ${maxAllowed} pang larawan.`);
+        event.target.value = '';
+        return;
+    }
+    
+    // Show temporary loading for large files
+    if (files.some(file => file.size > 5 * 1024 * 1024)) { // 5MB or larger
+        const tempLoading = document.createElement('div');
+        tempLoading.innerHTML = `
+            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; display: flex; justify-content: center; align-items: center;">
+                <div class="spinner-border text-light" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span class="ms-2 text-light">Ina-upload ang mga larawan...</span>
+            </div>
+        `;
+        document.body.appendChild(tempLoading);
+        
+        setTimeout(() => {
+            document.body.removeChild(tempLoading);
+        }, 1000);
+    }
+    
+    files.forEach((file) => {
+        selectedImages.push(file);
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const previewDiv = document.getElementById('image-preview');
+
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'relative';
+            wrapper.className = 'new-image';
+
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.style.maxWidth = '100px';
+            img.style.height = '100px';
+            img.style.objectFit = 'cover';
+            img.className = 'border border-success rounded';
+            img.alt = 'New image preview';
+
+            const delBtn = document.createElement('button');
+            delBtn.innerHTML = '&times;';
+            delBtn.type = 'button';
+            delBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0';
+            delBtn.style.cssText = 'border-radius: 50%; width: 24px; height: 24px; font-size: 12px; padding: 0;';
+            delBtn.onclick = () => {
+                previewDiv.removeChild(wrapper);
+                selectedImages = selectedImages.filter(imgFile => imgFile !== file);
+                updateHiddenInputs();
+                console.log('New image removed. Remaining:', selectedImages.length);
+            };
+
+            wrapper.appendChild(img);
+            wrapper.appendChild(delBtn);
+            previewDiv.appendChild(wrapper);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    updateHiddenInputs();
+    event.target.value = '';
+    console.log('Total selected images:', selectedImages.length);
+});
+
+function updateHiddenInputs() {
+    const container = document.getElementById('hidden-images-container');
+    container.innerHTML = '';
+
+    selectedImages.forEach((file) => {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.name = 'images';
+        input.className = 'd-none';
+        input.files = dataTransfer.files;
+
+        container.appendChild(input);
+    });
+}
+
+// Form submission with loading
+document.getElementById('postForm').addEventListener('submit', function(e) {
+    // Prevent double submission
+    if (document.getElementById('submitBtn').disabled) {
+        e.preventDefault();
+        return;
+    }
+    
+    console.log('Form submitting...');
+    console.log('Images to delete:', deletedImageIds);
+    console.log('New images to add:', selectedImages.length);
+    
+    // Show loading overlay
+    showLoading();
+    
+    // Optional: Add timeout to hide loading if something goes wrong
+    setTimeout(() => {
+        // If still loading after 30 seconds, show error
+        if (document.getElementById('loadingOverlay').style.display === 'flex') {
+            showErrorLoading('Masyadong matagal ang pag-update. Maaaring may problema sa internet connection.');
+        }
+    }, 30000);
+    
+    // Allow form to submit normally - loading will be hidden when page loads
+});
+
+// Handle page before unload (if user tries to navigate away)
+window.addEventListener('beforeunload', function(e) {
+    if (document.getElementById('loadingOverlay').style.display === 'flex') {
+        // Show confirmation if loading
+        e.preventDefault();
+        e.returnValue = 'Ang pag-update ay kasalukuyang ginagawa. Sigurado ka bang gusto mong umalis?';
+        return e.returnValue;
+    }
+});
+
+// Handle form submission success/error (if using AJAX)
+// Note: Since you're using regular form submission, loading will be hidden when new page loads
+// If you want to handle errors, you'd need to switch to AJAX
+
+// Initialize tooltips if any
+document.addEventListener('DOMContentLoaded', function() {
+    // Enable Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Check if there are any existing form errors
+    const formErrors = document.querySelector('.errorlist');
+    if (formErrors) {
+        console.log('Form has errors, showing alert');
+        alert('May mga error sa form. Pakisuri ang iyong input.');
+    }
+});
 </script>
 {% endblock %}
