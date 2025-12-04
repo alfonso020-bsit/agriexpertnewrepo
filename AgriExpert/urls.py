@@ -62,6 +62,8 @@ urlpatterns = [
     path('upvote_post/<int:post_id>/', upvote_post, name='upvote_post'),
     path('comment_post/<int:post_id>/', comment_post, name='comment_post'),
     path('mark_solution/<int:comment_id>/', mark_comment_as_solution, name='mark_comment_as_solution'),
+    path('edit_post/<int:post_id>/', views.edit_expert_post, name='edit_expert_post'),
+    path('delete_expert_image/<int:image_id>/', views.delete_expert_post_image, name='delete_expert_image'),
     path("expert/collab/", expert_collab, name="expert_collab"),
     path("expert/farmers/", expert_farmers, name="expert_farmers"),
     path("expert/collaboration/", expert_collaboration, name="expert_collaboration"),
@@ -85,15 +87,19 @@ urlpatterns = [
     
     
     # farmer
-    path('farmer/scan/', farmer_scan, name='farmer_scan'),
+    path('farmer/scan/', views.farmer_scan, name='farmer_scan'),
     path('farmer/library/', farmer_library, name='farmer_library'),
-      path('get-library/<str:paksa>/', get_library_details, name='get_library'),
+      path('get-library/<str:paksa>/', views.get_library_details, name='get_library'),
+    path('get-library/<str:paksa>/', views.get_library, name='get_library'),
+    # path('get-all-library/', views.get_all_library_items, name='get_all_library_items'),
     path('farmer/experts/', farmer_experts, name='farmer_experts'),
     path('farmer/farmers/', farmer_farmers, name='farmer_farmers'),
     
     path('farmer/post/<int:post_id>/', view_farmer_post, name='view_farmer_post'),
     path('farmer/post/<int:post_id>/upvote/', toggle_farmer_post_upvote, name='toggle_farmer_post_upvote'),
     path('farmer/post/<int:post_id>/comment/', add_farmer_post_comment, name='add_farmer_post_comment'),
+    path('delete-farmer-post/<int:post_id>/', views.delete_farmer_post, name='delete_farmer_post'),
+    path('edit-farmer-post/<int:post_id>/', views.edit_farmer_post, name='edit_farmer_post'),
     
     path('expert/farmer-posts/', expert_view_farmer_posts, name='expert_view_farmer_posts'),
     path('expert/farmer-post/<int:post_id>/upvote/', expert_toggle_farmer_post_upvote, name='expert_toggle_farmer_post_upvote'),
