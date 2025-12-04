@@ -6,6 +6,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mag-login</title>
     <style>
+        /* Add this to your existing styles */
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #388e3c;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            z-index: 1000;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .back-button:hover {
+            background: #2e7d32;
+        }
+        
+        /* Add margin to body to prevent overlap */
+        body {
+            padding-top: 60px;
+        }
+        
+        /* Rest of your existing styles remain the same */
         * {
             margin: 0;
             padding: 0;
@@ -13,7 +38,6 @@
             font-family: Arial, sans-serif;
         }
 
-        /* Full-screen background */
         body {
             display: flex;
             justify-content: center;
@@ -23,7 +47,6 @@
             background-size: cover;
         }
 
-        /* Card container */
         .card-container {
             display: flex;
             width: 80%;
@@ -34,7 +57,6 @@
             overflow: hidden;
         }
 
-        /* Logo side */
         .logo-side {
             width: 50%;
             display: flex;
@@ -49,7 +71,6 @@
             height: auto;
         }
 
-        /* Form side */
         .form-side {
             width: 50%;
             padding: 40px;
@@ -101,7 +122,6 @@
             margin-top: 15px;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .card-container {
                 flex-direction: column;
@@ -111,35 +131,33 @@
                 width: 100%;
                 text-align: center;
             }
+            
+            .back-button {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+            }
+            
+            body {
+                padding-top: 80px;
+            }
         }
     </style>
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- Simple Back Button -->
+    <a href="{% url 'landing' %}" class="back-button">
+        <i class="fas fa-arrow-left"></i> Bumalik
+    </a>
+
     <div class="card-container">
         <div class="logo-side">
             <img src="{% static 'css/images/LOGO.jpg' %}" alt="Logo">
         </div>
         <div class="form-side">
             <h2>Mag-login</h2>
-            {% comment %} <form method="POST" action="{% url 'login' %}">
-                {% csrf_token %}
-                
-                <label class="form-label">Username</label>
-                <input type="text" name="username" class="form-control" required>
-            
-                <label class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" required>
-            
-                <label class="form-label">Gampanin (Role)</label>
-                <select name="role" class="form-control">
-                    <option value="Magsasaka" {% if request.POST.role == "Magsasaka" %}selected{% endif %}>Magsasaka</option>
-                    <option value="Eksperto" {% if request.POST.role == "Eksperto" %}selected{% endif %}>Eksperto</option>
-                    <option value="Admin" {% if request.POST.role == "Admin" %}selected{% endif %}>Admin</option>
-                </select>
-                
-                <button type="submit" class="btn-custom">Login</button>
-                <p><a href="{% url 'password_reset' %}">Nakalimutan ang Password?</a></p>
-            </form> {% endcomment %}
             <form method="POST" action="{% url 'login' %}">
                 {% csrf_token %}
             
@@ -190,8 +208,6 @@
                     {% endif %}
                 {% endfor %}
             {% endif %}
-            
-            {% comment %} <p>Wala pang account? <a href="{% url 'signup' %}">Mag-signup dito</a></p> {% endcomment %}
         </div>
     </div>
 </body>
