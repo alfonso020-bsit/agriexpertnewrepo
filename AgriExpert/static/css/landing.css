@@ -55,83 +55,67 @@ body, html {
   color: white;
 } */
 
-/* Sticky Navigation */
+/* Navigation Fix - Keep Bootstrap Defaults */
 .navbar {
-  z-index: 1000;
-  color: #1c7430;
+  z-index: 1030;
 }
 
-.navbar-nav .nav-item {
-  margin-right: 20px;
-}
-
-.navbar-nav .nav-link:hover {
-  border-bottom: 2px solid #FFD700;
-  transition: all 0.3s ease-in-out;
-}
-
-.project-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.project {
-  position: relative;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.project img {
-  width: 100%;
-  border-radius: 10px;
-  transition: transform 0.3s ease-in-out;
-}
-
-.project:hover img {
-  transform: scale(1.1); /* Adds a zoom effect */
-}
-
-.layer {
-  position: absolute;
+/* Ensure proper stacking */
+.navbar.fixed-top {
+  position: fixed;
   top: 0;
+  right: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  opacity: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border-radius: 10px;
-  transition: opacity 0.3s ease-in-out;
+  z-index: 1030;
 }
 
-.layer h3 {
-  font-size: 1.8rem;
-  margin-bottom: 15px;
-  font-weight: bold;
+/* Adjust body padding for fixed navbar */
+body {
+  padding-top: 70px;
 }
 
-.layer a {
-  text-decoration: none;
-  padding: 10px 20px;
-  font-size: 1rem;
-  border-radius: 5px;
-  color: white;
-  background-color: #28a745;
-  transition: background-color 0.3s;
+/* Only minimal custom styles - let Bootstrap handle most */
+.navbar-toggler {
+  border: 2px solid white;
 }
 
-.layer a:hover {
-  background-color: #218838;
+.navbar-toggler:focus {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
 }
 
-.project:hover .layer {
-  opacity: 1;
+/* Mobile responsive */
+@media (max-width: 991.98px) {
+  .navbar-collapse {
+    background-color: #2e7d32;
+    padding: 15px;
+    margin-top: 10px;
+    border-radius: 8px;
+  }
+  
+  .navbar-nav .nav-link {
+    padding: 10px 15px !important;
+    margin: 5px 0;
+    border-radius: 5px;
+  }
+  
+  .navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    padding-top: 60px;
+  }
+  
+  .navbar-brand {
+    font-size: 1.2rem;
+  }
+  
+  .navbar-brand img {
+    width: 35px;
+    height: 35px;
+  }
 }
 
 
