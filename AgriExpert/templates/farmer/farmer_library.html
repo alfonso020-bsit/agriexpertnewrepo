@@ -1,236 +1,1593 @@
 {% extends 'farmer/base_farmer.html' %}
-
 {% load static %}
 
 {% block content %}
-
-<!-- Modal Structure -->
-<div class="modal fade" id="libraryModal" tabindex="-1" aria-labelledby="libraryModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="libraryModalLabel">Title Here</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="container-fluid library-container">
+    <!-- Page Header with Stats -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-header bg-gradient-primary text-white rounded-4 p-4 shadow">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-book-open fa-3x"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h1 class="fw-bold mb-2">AgriExpert Library</h1>
+                        <p class="mb-0 opacity-75">Tuklasin ang mga karaniwang sakit, peste, at problema sa palayan</p>
+                    </div>
+                    <div class="text-end">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="bg-white bg-opacity-25 rounded-3 p-2">
+                                    <small class="d-block">Kabuuan</small>
+                                    <strong class="fs-5">{{ total_items }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-white bg-opacity-25 rounded-3 p-2">
+                                    <small class="d-block">Mga Kategorya</small>
+                                    <strong class="fs-5">4</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Quick Stats -->
+                <div class="row mt-3">
+                    <div class="col-md-3 col-6">
+                        <div class="d-flex align-items-center bg-white bg-opacity-25 rounded-3 p-2">
+                            <i class="fas fa-virus me-2"></i>
+                            <div>
+                                <small class="d-block">Sakit</small>
+                                <strong>{{ disease_count }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="d-flex align-items-center bg-white bg-opacity-25 rounded-3 p-2">
+                            <i class="fas fa-bug me-2"></i>
+                            <div>
+                                <small class="d-block">Peste</small>
+                                <strong>{{ pest_count }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="d-flex align-items-center bg-white bg-opacity-25 rounded-3 p-2">
+                            <i class="fas fa-seedling me-2"></i>
+                            <div>
+                                <small class="d-block">Halaman</small>
+                                <strong>{{ total_items }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="d-flex align-items-center bg-white bg-opacity-25 rounded-3 p-2">
+                            <i class="fas fa-images me-2"></i>
+                            <div>
+                                <small class="d-block">Mga Larawan</small>
+                                <strong class="fs-5">30+</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="modal-body">
-          <p><strong>Deskripsyon:</strong> <span id="modal-deskripsyon"></span></p>
-          <p><strong>Ano ang nagagawa nito:</strong> <span id="modal-nagagawa"></span></p>
-          <p><strong>Bakit at saan ito nangyayari:</strong> <span id="modal-nangyayari"></span></p>
-          <p><strong>Paano ito matutukoy:</strong> <span id="modal-matutukoy"></span></p>
-          <p><strong>Bakit ito mahalaga:</strong> <span id="modal-mahalaga"></span></p>
-          <p><strong>Paano ito pangangasiwaan:</strong> <span id="modal-pangangasiwaan"></span></p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  
-<style>
-    .library-wrapper {
-        max-width: 1200px;
-        margin: 40px auto;
-        padding: 20px;
-        text-align: center;
-    }
-
-    .toggle-buttons {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 30px;
-        gap: 20px;
-    }
-
-    .toggle-buttons button {
-        padding: 12px 20px;
-        font-size: 18px;
-        cursor: pointer;
-        border: 2px solid #4CAF50;
-        background-color: white;
-        color: #4CAF50;
-        border-radius: 10px;
-        transition: 0.3s;
-    }
-
-    .toggle-buttons button.active {
-        background-color: #4CAF50;
-        color: white;
-    }
-
-    .image-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 20px;
-    }
-
-    .image-card {
-        background-color: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        overflow: hidden;
-        text-align: center;
-        padding: 15px;
-    }
-
-    .image-card img {
-        max-width: 100%;
-        height: auto;
-        border-radius: 8px;
-        margin-bottom: 10px;
-    }
-
-    .image-card h4 {
-        font-size: 16px;
-        color: #333;
-        margin-top: 10px;
-    }
-</style>
-
-<div class="library-wrapper">
-    <div class="toggle-buttons">
-        <button id="grainBtn" class="active" onclick="toggleLibrary('grain')">Grain</button>
-        <button id="leafBtn" onclick="toggleLibrary('leaf')">Leaf</button>
-        <button id="pestBtn" onclick="toggleLibrary('pest')">Pest</button>
-        <button id="stemBtn" onclick="toggleLibrary('stem')">Stem</button>
     </div>
 
-    <div id="imageContainer" class="image-grid">
-        <!-- Placeholder for images, initially Grain category shown -->
-        <!-- Example for Grain -->
-        <div class="image-card grain">
-            <img src="{% static 'css/libraryimages/Grain/deadheart.png' %}" alt="Dead Heart">
-            <h4>Dead Heart</h4>
+    <!-- Category Tabs -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-3">
+                    <div class="category-tabs d-flex flex-wrap justify-content-center gap-2" id="categoryTabs" role="tablist">
+                        <button class="category-tab active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-content" type="button" role="tab">
+                            <i class="fas fa-layer-group me-2"></i>Lahat
+                        </button>
+                        <button class="category-tab" id="grain-tab" data-bs-toggle="tab" data-bs-target="#grain-content" type="button" role="tab">
+                            <i class="fas fa-wheat-alt me-2"></i>Butil
+                        </button>
+                        <button class="category-tab" id="leaf-tab" data-bs-toggle="tab" data-bs-target="#leaf-content" type="button" role="tab">
+                            <i class="fas fa-leaf me-2"></i>Dahon
+                        </button>
+                        <button class="category-tab" id="pest-tab" data-bs-toggle="tab" data-bs-target="#pest-content" type="button" role="tab">
+                            <i class="fas fa-bug me-2"></i>Peste
+                        </button>
+                        <button class="category-tab" id="stem-tab" data-bs-toggle="tab" data-bs-target="#stem-content" type="button" role="tab">
+                            <i class="fas fa-seedling me-2"></i>Tangkay
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="image-card grain">
-            <img src="{% static 'css/libraryimages/Grain/FalseSmut.png' %}" alt="False Smut">
-            <h4>False Smut</h4>
+    </div>
+
+    <!-- SEARCH AND FILTER SECTION MOVED TO TOP -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8 mb-3 mb-md-0">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0" id="librarySearch" 
+                                       placeholder="Maghanap ng sakit o peste (hal. 'Blight', 'Borer', 'Virus')...">
+                                <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted mt-1 d-block">Mag-type ng keyword para mag-filter ng mga item</small>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary flex-fill" onclick="filterByType('all')" id="filterAll">
+                                    <i class="fas fa-list me-2"></i>Lahat
+                                </button>
+                                <button class="btn btn-outline-primary flex-fill" onclick="filterByType('disease')" id="filterDisease">
+                                    <i class="fas fa-virus me-2"></i>Sakit
+                                </button>
+                                <button class="btn btn-outline-danger flex-fill" onclick="filterByType('pest')" id="filterPest">
+                                    <i class="fas fa-bug me-2"></i>Peste
+                                </button>
+                            </div>
+                            <small class="text-muted mt-1 d-block text-center">I-filter ayon sa uri</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="image-card grain">
-            <img src="{% static 'css/libraryimages/Grain/GrainDiscoloration.png' %}" alt="Grain Discoloration">
-            <h4>Grain Discoloration</h4>
+    </div>
+
+    <!-- Category Content -->
+    <div class="tab-content" id="categoryContent">
+        <!-- All Items Content -->
+        <div class="tab-pane fade show active" id="all-content" role="tabpanel">
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="category-header bg-primary text-white rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="fw-bold mb-0">
+                                <i class="fas fa-layer-group me-2"></i>Lahat ng Impormasyon
+                            </h3>
+                            <span class="badge bg-white text-primary fs-6" id="all-count">{{ total_items }} item(s)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- All Items will be loaded here dynamically -->
+                <div id="all-items" class="row">
+                    {% for item in library_items %}
+                    <div class="col-md-6 col-lg-4 col-xl-3 mb-4" 
+                         data-category="{{ item.category|default:'uncategorized'|lower }}">
+                        <div class="library-card shadow-sm" 
+                             data-type="{{ item.type|default:'disease' }}" 
+                             data-category="{{ item.category|default:'uncategorized'|lower }}">
+                            <!-- Get image based on item name and category -->
+                            <img src="{% static 'css/libraryimages/default.png' %}" 
+                                alt="{{ item.paksa }}" 
+                                class="library-card-img"
+                                data-title="{{ item.paksa }}"
+                                data-category="{{ item.category|default:'uncategorized'|lower }}">
+                            <div class="library-card-body">
+                                <h5 class="library-card-title">{{ item.paksa }}</h5>
+                                <p class="library-card-desc">{{ item.deskripsyon|truncatechars:100 }}</p>
+                                <div class="library-card-tags">
+                                    <span class="library-tag 
+                                        {% if item.type == 'pest' or 'peste' in item.paksa|lower or 'insekt' in item.paksa|lower or 'uod' in item.paksa|lower %}
+                                            pest
+                                        {% else %}
+                                            disease
+                                        {% endif %}">
+                                        {% if item.type == 'pest' or 'peste' in item.paksa|lower or 'insekt' in item.paksa|lower or 'uod' in item.paksa|lower %}
+                                            Peste
+                                        {% else %}
+                                            Sakit
+                                        {% endif %}
+                                    </span>
+                                    {% if item.category %}
+                                    <span class="library-tag category-tag">
+                                        {{ item.category }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="library-card-footer">
+                                <small class="text-muted">{{ item.created_at|date:"M d, Y" }}</small>
+                                <button class="btn btn-sm btn-outline-success library-btn" 
+                                        onclick="openLibraryModal('{{ item.paksa }}')">
+                                    <i class="fas fa-eye me-1"></i>Tingnan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-5">
+                        <i class="fas fa-book fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">Walang mga rekord na natagpuan</h4>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Grain Content -->
+        <div class="tab-pane fade" id="grain-content" role="tabpanel">
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="category-header bg-success text-white rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="fw-bold mb-0">
+                                <i class="fas fa-wheat-alt me-2"></i>Mga Problema sa Butil
+                            </h3>
+                            <span class="badge bg-white text-success fs-6" id="grain-count">0 item(s)</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="grain-items" class="row">
+                    <!-- Images will be loaded by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaf Content -->
+        <div class="tab-pane fade" id="leaf-content" role="tabpanel">
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="category-header bg-success text-white rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="fw-bold mb-0">
+                                <i class="fas fa-leaf me-2"></i>Mga Problema sa Dahon
+                            </h3>
+                            <span class="badge bg-white text-success fs-6" id="leaf-count">0 item(s)</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="leaf-items" class="row">
+                    <!-- Images will be loaded by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Pest Content -->
+        <div class="tab-pane fade" id="pest-content" role="tabpanel">
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="category-header bg-danger text-white rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="fw-bold mb-0">
+                                <i class="fas fa-bug me-2"></i>Mga Peste sa Palayan
+                            </h3>
+                            <span class="badge bg-white text-danger fs-6" id="pest-count">0 item(s)</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="pest-items" class="row">
+                    <!-- Images will be loaded by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Stem Content -->
+        <div class="tab-pane fade" id="stem-content" role="tabpanel">
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="category-header bg-warning text-dark rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="fw-bold mb-0">
+                                <i class="fas fa-seedling me-2"></i>Mga Problema sa Tangkay
+                            </h3>
+                            <span class="badge bg-white text-warning fs-6" id="stem-count">0 item(s)</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="stem-items" class="row">
+                    <!-- Images will be loaded by JavaScript -->
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Enhanced Library Item Modal -->
+<div class="modal fade" id="libraryModal" tabindex="-1" aria-labelledby="libraryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient-success text-white rounded-top-3">
+                <h5 class="modal-title fw-bold" id="libraryModalLabel">
+                    <i class="fas fa-info-circle me-2"></i>Impormasyon
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="container-fluid p-0">
+                    <div class="row g-0">
+                        <!-- Left Column: Image and Basic Info -->
+                        <div class="col-lg-4">
+                            <div class="bg-light p-4 h-100">
+                                <div class="text-center mb-4">
+                                    <img id="modalImage" src="{% static 'css/libraryimages/default.png' %}" 
+                                         alt="" class="img-fluid rounded-3 shadow-sm mb-3" 
+                                         style="max-height: 250px; object-fit: contain;">
+                                    <div class="d-flex justify-content-center flex-wrap gap-2">
+                                        <span id="modalCategory" class="badge bg-success fs-6 px-3 py-2"></span>
+                                        <span id="modalTypeBadge" class="badge bg-info fs-6 px-3 py-2"></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Quick Facts -->
+                                <div class="card border-0 shadow-sm mb-3">
+                                    <div class="card-header bg-white">
+                                        <h6 class="mb-0 fw-bold">
+                                            <i class="fas fa-clock me-2"></i>Detalye
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <small class="text-muted d-block">Idinagdag</small>
+                                        <span id="modalCreatedAt" class="fw-bold"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Column: Details -->
+                        <div class="col-lg-8">
+                            <div class="p-4">
+                                <h4 class="fw-bold mb-4" id="modalTitle"></h4>
+                                
+                                <div class="accordion" id="libraryAccordion">
+                                    <!-- Description -->
+                                    <div class="accordion-item border-0 mb-3">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button bg-light rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                                                <i class="fas fa-file-alt me-2 text-primary"></i>
+                                                <span class="fw-bold">Deskripsyon</span>
+                                            </button>
+                                        </h2>
+                                        <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#libraryAccordion">
+                                            <div class="accordion-body pt-3">
+                                                <p id="modalDescription" class="mb-0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Effects -->
+                                    <div class="accordion-item border-0 mb-3">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed bg-light rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                                                <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                                                <span class="fw-bold">Epekto sa Palayan</span>
+                                            </button>
+                                        </h2>
+                                        <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#libraryAccordion">
+                                            <div class="accordion-body pt-3">
+                                                <p id="modalEffects" class="mb-0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Occurrence -->
+                                    <div class="accordion-item border-0 mb-3">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed bg-light rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                                                <i class="fas fa-map-marker-alt me-2 text-info"></i>
+                                                <span class="fw-bold">Lugar at Panahon</span>
+                                            </button>
+                                        </h2>
+                                        <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#libraryAccordion">
+                                            <div class="accordion-body pt-3">
+                                                <p id="modalOccurrence" class="mb-0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Identification -->
+                                    <div class="accordion-item border-0 mb-3">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed bg-light rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour">
+                                                <i class="fas fa-search me-2 text-success"></i>
+                                                <span class="fw-bold">Paano Matutukoy</span>
+                                            </button>
+                                        </h2>
+                                        <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#libraryAccordion">
+                                            <div class="accordion-body pt-3">
+                                                <p id="modalIdentification" class="mb-0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Importance -->
+                                    <div class="accordion-item border-0 mb-3">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed bg-light rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive">
+                                                <i class="fas fa-star me-2 text-warning"></i>
+                                                <span class="fw-bold">Kahalagahan</span>
+                                            </button>
+                                        </h2>
+                                        <div id="collapseFive" class="accordion-collapse collapse" data-bs-parent="#libraryAccordion">
+                                            <div class="accordion-body pt-3">
+                                                <p id="modalImportance" class="mb-0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Management -->
+                                    <div class="accordion-item border-0">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed bg-light rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix">
+                                                <i class="fas fa-tools me-2 text-danger"></i>
+                                                <span class="fw-bold">Pamamahala</span>
+                                            </button>
+                                        </h2>
+                                        <div id="collapseSix" class="accordion-collapse collapse" data-bs-parent="#libraryAccordion">
+                                            <div class="accordion-body pt-3">
+                                                <p id="modalManagement" class="mb-0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 bg-light">
+                <div class="d-flex justify-content-between w-100">
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary" onclick="printModalContent()">
+                            <i class="fas fa-print me-2"></i>I-print
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-2"></i>Isara
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="shareLibraryItem()">
+                            <i class="fas fa-share-alt me-2"></i>Ibahagi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Cleaned CSS without video support */
+.category-tag {
+    background: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+    border: 1px solid rgba(108, 117, 125, 0.2);
+}
+
+/* Active filter button style */
+.filter-btn.active {
+    background-color: #28a745 !important;
+    color: white !important;
+    border-color: #28a745 !important;
+}
+
+/* Search input improvements */
+#librarySearch {
+    border-radius: 12px 0 0 12px;
+    padding: 12px 16px;
+    font-size: 1rem;
+    border-right: 0;
+}
+
+#librarySearch:focus {
+    border-color: #28a745;
+    box-shadow: none;
+}
+
+.input-group-text {
+    border-radius: 12px 0 0 12px;
+    border-right: 0;
+}
+
+.input-group .btn {
+    border-radius: 0 12px 12px 0;
+}
+
+/* Item count badge */
+#all-count, #grain-count, #leaf-count, #pest-count, #stem-count {
+    font-weight: 600;
+    padding: 8px 16px;
+}
+
+/* Print styles */
+@media print {
+    .modal-header, .modal-footer, .accordion-button::after {
+        display: none !important;
+    }
+    
+    .accordion-button {
+        background-color: white !important;
+        color: black !important;
+    }
+    
+    .accordion-collapse {
+        display: block !important;
+        height: auto !important;
+    }
+    
+    .modal-dialog {
+        max-width: 100% !important;
+        margin: 0 !important;
+    }
+    
+    .modal-content {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* Rest of the CSS remains the same */
+.library-container {
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    min-height: 100vh;
+}
+
+.page-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.category-tabs {
+    gap: 8px;
+}
+
+.category-tab {
+    padding: 12px 24px;
+    border: 2px solid #dee2e6;
+    background: white;
+    color: #495057;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    flex: 1;
+    min-width: 120px;
+    max-width: 200px;
+}
+
+.category-tab:hover {
+    border-color: #28a745;
+    background: #f8f9fa;
+    transform: translateY(-2px);
+}
+
+.category-tab.active {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border-color: #28a745;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+}
+
+.category-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.library-card {
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    height: 100%;
+    background: white;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    cursor: pointer;
+}
+
+.library-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+}
+
+.library-card-img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    background: #f8f9fa;
+}
+
+.library-card-body {
+    padding: 20px;
+}
+
+.library-card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #2c3e50;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.library-card-desc {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 15px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.5;
+}
+
+.library-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 15px;
+}
+
+.library-tag {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.library-tag.disease {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+.library-tag.pest {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.library-card-footer {
+    padding: 12px 20px;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.library-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.library-btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Modal Styles */
+.modal-image-container {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-image-container img {
+    max-height: 300px;
+    width: auto;
+    object-fit: contain;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #f8f9fa;
+    color: #2c3e50;
+    box-shadow: none;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(0,0,0,.125);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .category-tabs {
+        flex-direction: column;
+    }
+    
+    .category-tab {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .library-card {
+        margin-bottom: 20px;
+    }
+    
+    .modal-dialog {
+        margin: 10px;
+    }
+    
+    .modal-content {
+        border-radius: 12px;
+    }
+    
+    .modal-body .row {
+        flex-direction: column;
+    }
+    
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .input-group .btn {
+        border-radius: 0 0 12px 12px;
+        margin-top: -1px;
+    }
+    
+    #librarySearch {
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .input-group-text {
+        border-radius: 12px 12px 0 0;
+    }
+}
+
+@media (max-width: 576px) {
+    .page-header {
+        padding: 20px !important;
+    }
+    
+    .library-card-img {
+        height: 150px;
+    }
+    
+    .library-card-body {
+        padding: 15px;
+    }
+    
+    .modal-image-container {
+        padding: 20px;
+    }
+    
+    .category-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    
+    .category-header h3 {
+        margin-bottom: 10px !important;
+    }
+}
+
+/* Loading Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.library-card {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+
 <script>
-    function toggleLibrary(category) {
-        const categories = ['grain', 'leaf', 'pest', 'stem'];
+// Initialize Bootstrap components
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Load images for "Lahat" tab on page load - with delay to ensure DOM is ready
+    setTimeout(function() {
+        loadAllTabImages();
+        updateItemCounts();
+    }, 100);
+    
+    // Initialize tabs
+    var triggerTabList = [].slice.call(document.querySelectorAll('#categoryTabs button'));
+    triggerTabList.forEach(function (triggerEl) {
+        var tabTrigger = new bootstrap.Tab(triggerEl);
         
-        // Remove the active class from all buttons
-        categories.forEach(cat => {
-            const button = document.getElementById(cat + 'Btn');
-            button.classList.remove('active');
+        triggerEl.addEventListener('click', function (event) {
+            event.preventDefault();
+            tabTrigger.show();
+            
+            // Show images for the selected category
+            const category = triggerEl.getAttribute('data-bs-target').replace('#', '');
+            if (category !== 'all-content') {
+                showCategoryImages(category.replace('-content', ''));
+            } else {
+                // For all tab, reload images
+                setTimeout(function() {
+                    loadAllTabImages();
+                }, 50);
+            }
+        });
+    });
+    
+    // Initialize search functionality
+    const searchInput = document.getElementById('librarySearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            filterLibraryItems(e.target.value);
+            updateActiveFilter();
         });
         
-        // Add the active class to the clicked button
-        document.getElementById(category + 'Btn').classList.add('active');
+        // Add Enter key support
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                filterLibraryItems(this.value);
+            }
+        });
+    }
+    
+    // Initialize category images on page load
+    showCategoryImages('grain');
+    
+    // Filter out any items with 'uncategorized' category on page load
+    hideUncategorizedItems();
+    
+    // Set "All" filter as active by default
+    updateActiveFilter('all');
+});
+
+// Function to update active filter button
+function updateActiveFilter(type = 'all') {
+    // Remove active class from all filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Add active class to current filter button
+    const activeBtn = document.getElementById(`filter${type.charAt(0).toUpperCase() + type.slice(1)}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+}
+
+// Function to hide uncategorized items
+function hideUncategorizedItems() {
+    const allItems = document.querySelectorAll('#all-items .col-md-6, #all-items .col-lg-4, #all-items .col-xl-3');
+    
+    allItems.forEach(item => {
+        const card = item.querySelector('.library-card');
+        if (!card) return;
         
-        // Hide all images and show the ones relevant to the selected category
-        const imageContainer = document.getElementById('imageContainer');
-        imageContainer.innerHTML = ''; // Clear existing images
+        const category = card.getAttribute('data-category');
+        // Hide items with 'uncategorized' category
+        if (category === 'uncategorized') {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Function to update item counts
+function updateItemCounts() {
+    // Update all items count
+    const allItems = document.querySelectorAll('#all-items .col-md-6, #all-items .col-lg-4, #all-items .col-xl-3');
+    const visibleItems = Array.from(allItems).filter(item => item.style.display !== 'none');
+    document.getElementById('all-count').textContent = `${visibleItems.length} item(s)`;
+    
+    // Update category counts
+    const categories = ['grain', 'leaf', 'pest', 'stem'];
+    categories.forEach(category => {
+        const items = document.querySelectorAll(`#${category}-items .col-md-6, #${category}-items .col-lg-4, #${category}-items .col-xl-3`);
+        const countElement = document.getElementById(`${category}-count`);
+        if (countElement) {
+            countElement.textContent = `${items.length} item(s)`;
+        }
+    });
+}
+
+// Load images for all items in the "Lahat" tab
+function loadAllTabImages() {
+    const allItems = document.querySelectorAll('#all-items .col-md-6, #all-items .col-lg-4, #all-items .col-xl-3');
+    
+    allItems.forEach(item => {
+        const card = item.querySelector('.library-card');
+        if (!card) return;
         
-        // Add the corresponding images based on the category
-        if (category === 'grain') {
-            addImages([
-                { src: 'Grain/deadheart.png', alt: 'Dead Heart', label: 'Dead Heart' },
-                { src: 'Grain/FalseSmut.png', alt: 'False Smut', label: 'False Smut' },
-                { src: 'Grain/GrainDiscoloration.png', alt: 'Grain Discoloration', label: 'Grain Discoloration' }
-            ]);
-        } else if (category === 'leaf') {
-            addImages([
-                { src: 'Leaf/bakanae.png', alt: 'Bakanae', label: 'Bakanae' },
-                { src: 'Leaf/grassystuntvirus.png', alt: 'Grassy Stunt Virus', label: 'Grassy Stunt Virus' },
-                { src: 'Leaf/ricestripes.png', alt: 'Rice Stripes', label: 'Rice Stripes' },
-                { src: 'Leaf/tungrovirus.png', alt: 'Tungro Virus', label: 'Tungro Virus' },
-                { src: 'Leaf/leafscald.png', alt: 'Leaf Scald', label: 'Leaf Scald' },
-                { src: 'Leaf/narrowbrownspot.png', alt: 'Narrow Brown Spot', label: 'Narrow Brown Spot' },
-                { src: 'Leaf/leafblast.png', alt: 'Leaf Blast', label: 'Leaf Blast' },
-                { src: 'Leaf/leafblight.png', alt: 'Leaf Blight', label: 'Leaf Blight' }
-            ]);
-        } else if (category === 'pest') {
-            addImages([
-                { src: 'Pest/riceborrer.png', alt: 'Rice Borrer', label: 'Rice Borrer' },
-                { src: 'Pest/thrips.png', alt: 'Thrips', label: 'Thrips' },
-                { src: 'Pest/waterweevil.png', alt: 'Water Weevil', label: 'Water Weevil' },
-                { src: 'Pest/stemfly.png', alt: 'Stem Fly', label: 'Stem Fly' },
-                { src: 'Pest/leafroller.png', alt: 'Leaf Roller', label: 'Leaf Roller' },
-                { src: 'Pest/leafhopper.png', alt: 'Leaf Hopper', label: 'Leaf Hopper' },
-                { src: 'Pest/caterpillar.png', alt: 'Caterpillar', label: 'Caterpillar' },
-                { src: 'Pest/gallmidge.png', alt: 'Gall Midge', label: 'Gall Midge' },
-                { src: 'Pest/bugs.png', alt: 'Bugs', label: 'Bugs' },
-                { src: 'Pest/blackbugs.png', alt: 'Black Bugs', label: 'Black Bugs' },
-                { src: 'Pest/paddystemmagotfly.png', alt: 'Paddy Stem Maggot Fly', label: 'Paddy Stem Maggot Fly' },
-                { src: 'Pest/maya.png', alt: 'Maya', label: 'Maya' },
-                { src: 'Pest/munia.png', alt: 'Munia', label: 'Munia' },
-                { src: 'Pest/hispa.png', alt: 'Hispa', label: 'Hispa' },
-                { src: 'Pest/goldenapplesnailegg.png', alt: 'Golden Apple Snail Egg', label: 'Golden Apple Snail Egg' },
-                { src: 'Pest/goldenapplesnail.png', alt: 'Golden Apple Snail', label: 'Golden Apple Snail' },
-                { src: 'Pest/asiaticriceborer.png', alt: 'Asiatic Rice Borer', label: 'Asiatic Rice Borer' },
-                { src: 'Pest/bluebettle.png', alt: 'Blue Bettle', label: 'Blue Bettle' },
-                { src: 'Pest/brownplanthopper.png', alt: 'Brown Plant Hopper', label: 'Brown Plant Hopper' },
-                { src: 'Pest/stemborer.png', alt: 'Stem Borer', label: 'Stem Borer' }
-            ]);
-        } else if (category === 'stem') {
-            addImages([
-                { src: 'Stem/StemRot.png', alt: 'Rot Stem', label: 'Rot Stem' },
-                { src: 'Stem/stemblight.png', alt: 'Stem Blight', label: 'Stem Blight' },
-                { src: 'Stem/StemRust.png', alt: 'Stem Rust', label: 'Stem Rust' }
-            ]);
+        const title = card.querySelector('.library-card-title').textContent.trim();
+        const category = card.getAttribute('data-category') || 'uncategorized';
+        const imgElement = card.querySelector('.library-card-img');
+        
+        if (imgElement && title) {
+            const imagePath = findImagePath(title, category);
+            
+            // Set image directly
+            if (imagePath && imagePath !== "{% static 'css/libraryimages/default.png' %}") {
+                imgElement.src = imagePath;
+            }
+        }
+    });
+}
+
+// Library Data - Your original image mapping (NO YOUTUBE_URL)
+const libraryData = {
+    items: [
+        {% for item in library_items %}
+        {
+            id: {{ forloop.counter }},
+            title: "{{ item.paksa|escapejs }}",
+            description: "{{ item.deskripsyon|escapejs }}",
+            type: "{{ item.type|default:'disease'|escapejs }}",
+            category: "{{ item.category|default:'uncategorized'|escapejs|lower }}",
+            created_at: "{{ item.created_at|date:'M d, Y' }}",
+            details: {
+                effects: "{{ item.ano_ang_nagagawa_nito|default:''|escapejs }}",
+                occurrence: "{{ item.bakit_at_saan_ito_nangyayari|default:''|escapejs }}",
+                identification: "{{ item.paano_ito_matutukoy|default:''|escapejs }}",
+                importance: "{{ item.bakit_ito_mahalaga|default:''|escapejs }}",
+                management: "{{ item.paano_ito_pangangasiwaan|default:''|escapejs }}"
+            }
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    
+    // Static image mapping organized by categories
+    images: {
+        grain: [
+            { src: "{% static 'css/libraryimages/Grain/deadheart.png' %}", alt: 'Dead Heart', label: 'Dead Heart' },
+            { src: "{% static 'css/libraryimages/Grain/FalseSmut.png' %}", alt: 'False Smut', label: 'False Smut' },
+            { src: "{% static 'css/libraryimages/Grain/GrainDiscoloration.png' %}", alt: 'Grain Discoloration', label: 'Grain Discoloration' }
+        ],
+        leaf: [
+            { src: "{% static 'css/libraryimages/Leaf/bakanae.png' %}", alt: 'Bakanae', label: 'Bakanae' },
+            { src: "{% static 'css/libraryimages/Leaf/grassystuntvirus.png' %}", alt: 'Grassy Stunt Virus', label: 'Grassy Stunt Virus' },
+            { src: "{% static 'css/libraryimages/Leaf/ricestripes.png' %}", alt: 'Rice Stripes', label: 'Rice Stripes' },
+            { src: "{% static 'css/libraryimages/Leaf/tungrovirus.png' %}", alt: 'Tungro Virus', label: 'Tungro Virus' },
+            { src: "{% static 'css/libraryimages/Leaf/leafscald.png' %}", alt: 'Leaf Scald', label: 'Leaf Scald' },
+            { src: "{% static 'css/libraryimages/Leaf/narrowbrownspot.png' %}", alt: 'Narrow Brown Spot', label: 'Narrow Brown Spot' },
+            { src: "{% static 'css/libraryimages/Leaf/leafblast.png' %}", alt: 'Leaf Blast', label: 'Leaf Blast' },
+            { src: "{% static 'css/libraryimages/Leaf/leafblight.png' %}", alt: 'Leaf Blight', label: 'Leaf Blight' },
+            { src: "{% static 'css/libraryimages/Leaf/leafstreak.jpg' %}", alt: 'Leaf Streak', label: 'Leaf Streak' },
+            { src: "{% static 'css/libraryimages/Leaf/riceblast.jpg' %}", alt: 'Rice Blast', label: 'Rice Blast' },
+            { src: "{% static 'css/libraryimages/Leaf/riceragged.jpg' %}", alt: 'Ragged', label: 'Rice Ragged Stunt Virus' },
+            { src: "{% static 'css/libraryimages/Leaf/ricestrip.jpg' %}", alt: 'Rice Stripe Virus', label: 'Rice Stripe Virus' },
+            { src: "{% static 'css/libraryimages/Leaf/sheath.jpg' %}", alt: 'Sheath Blight', label: 'Sheath Blight' },
+            { src: "{% static 'css/libraryimages/Leaf/neckblast.jpg' %}", alt: 'Neck Blast', label: 'Neck Blast' }
+        ],
+        pest: [
+            { src: "{% static 'css/libraryimages/Pest/riceborrer.png' %}", alt: 'Rice Borer', label: 'Rice Borer' },
+            { src: "{% static 'css/libraryimages/Pest/thrips.png' %}", alt: 'Thrips', label: 'Thrips' },
+            { src: "{% static 'css/libraryimages/Pest/waterweevil.png' %}", alt: 'Water Weevil', label: 'Water Weevil' },
+            { src: "{% static 'css/libraryimages/Pest/stemfly.png' %}", alt: 'Stem Fly', label: 'Stem Fly' },
+            { src: "{% static 'css/libraryimages/Pest/leafroller.png' %}", alt: 'Leaf Roller', label: 'Leaf Roller' },
+            { src: "{% static 'css/libraryimages/Pest/leafhopper.png' %}", alt: 'Leaf Hopper', label: 'Leaf Hopper' },
+            { src: "{% static 'css/libraryimages/Pest/caterpillar.png' %}", alt: 'Caterpillar', label: 'Caterpillar' },
+            { src: "{% static 'css/libraryimages/Pest/gallmidge.png' %}", alt: 'Gall Midge', label: 'Gall Midge' },
+            { src: "{% static 'css/libraryimages/Pest/bugs.png' %}", alt: 'Bugs', label: 'Bugs' },
+            { src: "{% static 'css/libraryimages/Pest/blackbugs.png' %}", alt: 'Black Bugs', label: 'Black Bugs' },
+            { src: "{% static 'css/libraryimages/Pest/paddystemmagotfly.png' %}", alt: 'Paddy Stem Maggot Fly', label: 'Paddy Stem Maggot Fly' },
+            { src: "{% static 'css/libraryimages/Pest/maya.png' %}", alt: 'Maya', label: 'Maya' },
+            { src: "{% static 'css/libraryimages/Pest/munia.png' %}", alt: 'Munia', label: 'Munia' },
+            { src: "{% static 'css/libraryimages/Pest/hispa.png' %}", alt: 'Hispa', label: 'Hispa' },
+            { src: "{% static 'css/libraryimages/Pest/goldenapplesnailegg.png' %}", alt: 'Golden Apple Snail Egg', label: 'Golden Apple Snail Egg' },
+            { src: "{% static 'css/libraryimages/Pest/goldenapplesnail.png' %}", alt: 'Golden Apple Snail', label: 'Golden Apple Snail' },
+            { src: "{% static 'css/libraryimages/Pest/asiaticriceborer.png' %}", alt: 'Asiatic Rice Borer', label: 'Asiatic Rice Borer' },
+            { src: "{% static 'css/libraryimages/Pest/bluebettle.png' %}", alt: 'Blue Beetle', label: 'Blue Beetle' },
+            { src: "{% static 'css/libraryimages/Pest/brownplanthopper.png' %}", alt: 'Brown Plant Hopper', label: 'Brown Plant Hopper' },
+            { src: "{% static 'css/libraryimages/Pest/stemborer.png' %}", alt: 'Stem Borer', label: 'Stem Borer' },
+            { src: "{% static 'css/libraryimages/Pest/larvae.jpg' %}", alt: 'Rice Stem Borer Larvae', label: 'Rice Stem Borer Larvae' },
+            { src: "{% static 'css/libraryimages/Pest/grasshopper.jpg' %}", alt: 'Grasshoper', label: 'Grass Hopper' },
+            { src: "{% static 'css/libraryimages/Pest/leaffolder.jpg' %}", alt: 'Leaf folder', label: 'Leaf folder' },
+            { src: "{% static 'css/libraryimages/Pest/riceskipper.jpg' %}", alt: 'Rice Skipper', label: 'Rice Skipper' },
+        ],
+        stem: [
+            { src: "{% static 'css/libraryimages/Stem/StemRot.png' %}", alt: 'Stem Rot', label: 'Rot Stem' },
+            { src: "{% static 'css/libraryimages/Stem/stemblight.png' %}", alt: 'Stem Blight', label: 'Stem Blight' },
+            { src: "{% static 'css/libraryimages/Stem/StemRust.png' %}", alt: 'Stem Rust', label: 'Stem Rust' },
+        ]
+    },
+    
+    // Category mapping for database items
+    categoryMapping: {
+        'grain': ['dead heart', 'false smut', 'grain discoloration', 'butil', 'grain'],
+        'leaf': ['bakanae', 'grassy stunt virus', 'rice stripes', 'tungro virus', 
+                'leaf scald', 'narrow brown spot', 'leaf blast', 'leaf blight', 'dahon', 'leaf'],
+        'pest': ['rice borer', 'thrips', 'water weevil', 'stem fly', 'leaf roller', 
+                'leaf hopper', 'caterpillar', 'gall midge', 'bugs', 'black bugs',
+                'paddy stem maggot fly', 'maya', 'munia', 'hispa', 'golden apple snail egg',
+                'golden apple snail', 'asiatic rice borer', 'blue beetle', 'brown plant hopper',
+                'stem borer', 'peste', 'pest', 'insekt', 'uod'],
+        'stem': ['stem rot', 'stem blight', 'stem rust', 'tangkay', 'stem']
+    }
+};
+
+// Show images for specific category
+function showCategoryImages(category) {
+    const container = document.getElementById(`${category}-items`);
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    const images = libraryData.images[category] || [];
+    images.forEach(image => {
+        const col = document.createElement('div');
+        col.className = 'col-md-6 col-lg-4 col-xl-3 mb-4';
+        
+        // Find matching database item for this image
+        const dbItem = libraryData.items.find(item => 
+            item.title.toLowerCase().replace(/\s+/g, '') === image.label.toLowerCase().replace(/\s+/g, '') ||
+            item.title.toLowerCase().includes(image.label.toLowerCase()) ||
+            image.label.toLowerCase().includes(item.title.toLowerCase())
+        );
+        
+        col.innerHTML = `
+            <div class="library-card shadow-sm" data-type="${category === 'pest' ? 'pest' : 'disease'}" data-category="${category}">
+                <img src="${image.src}" alt="${image.alt}" class="library-card-img">
+                <div class="library-card-body">
+                    <h5 class="library-card-title">${image.label}</h5>
+                    <p class="library-card-desc">${dbItem ? dbItem.description : 'Tingnan ang buong impormasyon.'}</p>
+                    <div class="library-card-tags">
+                        <span class="library-tag ${category === 'pest' ? 'pest' : 'disease'}">
+                            ${category === 'pest' ? 'Peste' : 'Sakit'}
+                        </span>
+                        <span class="library-tag category-tag">
+                            ${getCategoryDisplayName(category)}
+                        </span>
+                    </div>
+                </div>
+                <div class="library-card-footer">
+                    <small class="text-muted">${dbItem ? dbItem.created_at : ''}</small>
+                    <button class="btn btn-sm btn-outline-success library-btn" 
+                            onclick="openLibraryModal('${image.label}')">
+                        <i class="fas fa-eye me-1"></i>Tingnan
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(col);
+    });
+    
+    // Update count for this category
+    updateCategoryCount(category);
+}
+
+// Update count for a specific category
+function updateCategoryCount(category) {
+    const container = document.getElementById(`${category}-items`);
+    if (container) {
+        const items = container.querySelectorAll('.col-md-6, .col-lg-4, .col-xl-3');
+        const countElement = document.getElementById(`${category}-count`);
+        if (countElement) {
+            countElement.textContent = `${items.length} item(s)`;
         }
     }
+}
 
-    {% comment %} function addImages(images) {
-        const container = document.getElementById('imageContainer');
-        images.forEach(image => {
-            const card = document.createElement('div');
-            card.classList.add('image-card');
-            card.innerHTML = `
-                <img src="/static/css/libraryimages/${image.src}" alt="${image.alt}">
-                <h4>${image.label}</h4>
-            `;
-            container.appendChild(card);
-        });
-    }     {% endcomment %}
+// Get display name for category
+function getCategoryDisplayName(category) {
+    const displayNames = {
+        'grain': 'Butil',
+        'leaf': 'Dahon',
+        'pest': 'Peste',
+        'stem': 'Tangkay',
+        'uncategorized': 'Hindi Nakategorya'
+    };
+    return displayNames[category] || category;
+}
 
-    function addImages(images) {
-        const container = document.getElementById('imageContainer');
-        images.forEach(image => {
-            const card = document.createElement('div');
-            card.classList.add('image-card');
-            card.setAttribute('style', 'cursor:pointer;');
-            card.setAttribute('onclick', `openLibraryModal("${image.label}")`);
-            card.innerHTML = `
-                <img src="/static/css/libraryimages/${image.src}" alt="${image.alt}">
-                <h4>${image.label}</h4>
-            `;
-            container.appendChild(card);
+// Filter library items by search term
+function filterLibraryItems(searchTerm) {
+    searchTerm = searchTerm.toLowerCase().trim();
+    const cards = document.querySelectorAll('.library-card');
+    
+    cards.forEach(card => {
+        const title = card.querySelector('.library-card-title')?.textContent.toLowerCase() || '';
+        const desc = card.querySelector('.library-card-desc')?.textContent.toLowerCase() || '';
+        const tags = Array.from(card.querySelectorAll('.library-tag')).map(tag => tag.textContent.toLowerCase());
+        
+        const matches = title.includes(searchTerm) || 
+                       desc.includes(searchTerm) || 
+                       tags.some(tag => tag.includes(searchTerm));
+        
+        if (matches) {
+            card.closest('.col-md-6').style.display = 'block';
+            card.style.animation = 'fadeInUp 0.3s ease-out';
+        } else {
+            card.closest('.col-md-6').style.display = 'none';
+        }
+    });
+    
+    // Update item counts after filtering
+    updateItemCounts();
+}
+
+// Clear search input
+function clearSearch() {
+    const searchInput = document.getElementById('librarySearch');
+    if (searchInput) {
+        searchInput.value = '';
+        filterLibraryItems('');
+        updateActiveFilter('all');
+    }
+}
+
+// Open library modal (simplified - no YouTube)
+function openLibraryModal(title) {
+    // Try to find item in database items first
+    const item = libraryData.items.find(i => i.title === title);
+    
+    if (item) {
+        showModalFromDatabaseItem(item);
+    } else {
+        fetchLibraryDataFromServer(title);
+    }
+}
+
+// Show modal (simplified - no video handling)
+function showModalFromDatabaseItem(item) {
+    // Set modal content
+    document.getElementById('libraryModalLabel').innerText = item.title;
+    document.getElementById('modalTitle').innerText = item.title;
+    document.getElementById('modalDescription').innerText = item.description;
+    document.getElementById('modalEffects').innerText = item.details.effects || 'Walang available na impormasyon.';
+    document.getElementById('modalOccurrence').innerText = item.details.occurrence || 'Walang available na impormasyon.';
+    document.getElementById('modalIdentification').innerText = item.details.identification || 'Walang available na impormasyon.';
+    document.getElementById('modalImportance').innerText = item.details.importance || 'Walang available na impormasyon.';
+    document.getElementById('modalManagement').innerText = item.details.management || 'Walang available na impormasyon.';
+    
+    // Set type badge
+    const titleLower = item.title.toLowerCase();
+    const isPest = item.type === 'pest' || 
+                   titleLower.includes('peste') || 
+                   titleLower.includes('insekt') || 
+                   titleLower.includes('uod');
+    
+    const typeBadge = document.getElementById('modalTypeBadge');
+    typeBadge.innerText = isPest ? 'Peste' : 'Sakit';
+    typeBadge.className = isPest ? 'badge bg-danger fs-6 px-3 py-2' : 'badge bg-primary fs-6 px-3 py-2';
+    
+    // Set category badge
+    const categoryBadge = document.getElementById('modalCategory');
+    const category = item.category || determineCategory(item.title);
+    categoryBadge.innerText = getCategoryDisplayName(category);
+    
+    // Set created date
+    document.getElementById('modalCreatedAt').innerText = item.created_at;
+    
+    // Find and set image
+    const imagePath = findImagePath(item.title, category);
+    document.getElementById('modalImage').src = imagePath;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('libraryModal'));
+    modal.show();
+}
+
+// Determine category from title
+function determineCategory(title) {
+    const lowerTitle = title.toLowerCase();
+    for (const category in libraryData.categoryMapping) {
+        if (libraryData.categoryMapping[category].some(keyword => lowerTitle.includes(keyword))) {
+            return category;
+        }
+    }
+    return 'uncategorized';
+}
+
+// Find image path based on item name and category
+function findImagePath(paksa, category = null) {
+    const normalizedPaksa = paksa.toLowerCase().replace(/\s+/g, '');
+    
+    // If category is provided, search in that category first
+    if (category && libraryData.images[category]) {
+        const image = libraryData.images[category].find(img => {
+            const normalizedLabel = img.label.toLowerCase().replace(/\s+/g, '');
+            return normalizedLabel === normalizedPaksa || 
+                   normalizedPaksa.includes(normalizedLabel) || 
+                   normalizedLabel.includes(normalizedPaksa);
         });
+        
+        if (image) {
+            return image.src;
+        }
     }
     
+    // Search through all categories
+    for (const cat in libraryData.images) {
+        const image = libraryData.images[cat].find(img => {
+            const normalizedLabel = img.label.toLowerCase().replace(/\s+/g, '');
+            return normalizedLabel === normalizedPaksa || 
+                   normalizedPaksa.includes(normalizedLabel) || 
+                   normalizedLabel.includes(normalizedPaksa);
+        });
+        
+        if (image) {
+            return image.src;
+        }
+    }
+    
+    // Default image if not found
+    return "{% static 'css/libraryimages/default.png' %}";
+}
+
+// Fetch library data from server (NO YOUTUBE_URL)
+function fetchLibraryDataFromServer(paksa) {
+    fetch(`/get-library/${encodeURIComponent(paksa)}/`)
+    .then(response => {
+        if (!response.ok) {
+            // Try to find item in local data if server fails
+            const localItem = libraryData.items.find(i => i.title === paksa);
+            if (localItem) {
+                showModalFromDatabaseItem(localItem);
+                return;
+            }
+            throw new Error('Library info not found.');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Create a temporary item object from server data
+        const serverItem = {
+            title: data.paksa,
+            description: data.deskripsyon || 'Walang available na deskripsyon.',
+            type: data.type || 'disease',
+            category: data.category || determineCategory(data.paksa),
+            created_at: data.created_at || new Date().toLocaleDateString('tl-PH'),
+            details: {
+                effects: data.ano_ang_nagagawa_nito || '',
+                occurrence: data.bakit_at_saan_ito_nangyayari || '',
+                identification: data.paano_ito_matutukoy || '',
+                importance: data.bakit_ito_mahalaga || '',
+                management: data.paano_ito_pangangasiwaan || ''
+            }
+        };
+        
+        // Show modal with server data
+        showModalFromDatabaseItem(serverItem);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Show error modal
+        document.getElementById('libraryModalLabel').innerText = paksa;
+        document.getElementById('modalTitle').innerText = paksa;
+        document.getElementById('modalDescription').innerText = 'Hindi makuha ang impormasyon mula sa server.';
+        
+        const category = determineCategory(paksa);
+        const imagePath = findImagePath(paksa, category);
+        document.getElementById('modalImage').src = imagePath;
+        
+        const modal = new bootstrap.Modal(document.getElementById('libraryModal'));
+        modal.show();
+    });
+}
+
+// Filter by type (disease/pest) - UPDATED with active state
+function filterByType(type) {
+    const cards = document.querySelectorAll('.library-card');
+    const searchInput = document.getElementById('librarySearch');
+    
+    // Clear search if any
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    // Update active filter button
+    updateActiveFilter(type);
+    
+    cards.forEach(card => {
+        const cardType = card.querySelector('.library-tag.disease') ? 'disease' : 
+                        card.querySelector('.library-tag.pest') ? 'pest' : '';
+        
+        if (type === 'all') {
+            card.closest('.col-md-6').style.display = 'block';
+        } else {
+            card.closest('.col-md-6').style.display = cardType === type ? 'block' : 'none';
+        }
+        
+        if (card.closest('.col-md-6').style.display === 'block') {
+            card.style.animation = 'fadeInUp 0.3s ease-out';
+        }
+    });
+    
+    // Update item counts after filtering
+    updateItemCounts();
+}
+
+// Share library item
+function shareLibraryItem() {
+    const title = document.getElementById('libraryModalLabel')?.innerText;
+    if (!title) return;
+    
+    const url = window.location.href;
+    const text = `Tingnan ang impormasyon tungkol sa "${title}" sa AgriExpert Library`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: title,
+            text: text,
+            url: url
+        });
+    } else {
+        // Fallback: Copy to clipboard
+        navigator.clipboard.writeText(`${text}: ${url}`).then(() => {
+            alert('✅ Na-kopya ang link! Maaari mo na itong i-share.');
+        });
+    }
+}
+
+// Print modal content
+function printModalContent() {
+    const modalTitle = document.getElementById('modalTitle')?.innerText || '';
+    const modalDescription = document.getElementById('modalDescription')?.innerText || '';
+    const modalEffects = document.getElementById('modalEffects')?.innerText || '';
+    const modalOccurrence = document.getElementById('modalOccurrence')?.innerText || '';
+    const modalIdentification = document.getElementById('modalIdentification')?.innerText || '';
+    const modalImportance = document.getElementById('modalImportance')?.innerText || '';
+    const modalManagement = document.getElementById('modalManagement')?.innerText || '';
+    const modalImage = document.getElementById('modalImage')?.src || '';
+    const modalCategory = document.getElementById('modalCategory')?.innerText || '';
+    const modalTypeBadge = document.getElementById('modalTypeBadge')?.innerText || '';
+    const modalCreatedAt = document.getElementById('modalCreatedAt')?.innerText || '';
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        alert('Please allow pop-ups to print.');
+        return;
+    }
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>${modalTitle} - AgriExpert Library</title>
+            <meta charset="UTF-8">
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    padding: 40px;
+                    color: #333;
+                    line-height: 1.6;
+                }
+                
+                .header {
+                    text-align: center;
+                    border-bottom: 4px solid #28a745;
+                    padding-bottom: 20px;
+                    margin-bottom: 30px;
+                }
+                
+                .header h1 {
+                    color: #28a745;
+                    font-size: 28px;
+                    margin-bottom: 10px;
+                }
+                
+                .header .subtitle {
+                    color: #666;
+                    font-size: 14px;
+                    font-style: italic;
+                }
+                
+                .image-container {
+                    text-align: center;
+                    margin: 30px 0;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                }
+                
+                .image-container img {
+                    max-width: 400px;
+                    max-height: 300px;
+                    object-fit: contain;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                }
+                
+                .badges {
+                    text-align: center;
+                    margin: 20px 0;
+                }
+                
+                .badge {
+                    display: inline-block;
+                    padding: 8px 16px;
+                    margin: 0 5px;
+                    border-radius: 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+                
+                .badge.category {
+                    background: #28a745;
+                    color: white;
+                }
+                
+                .badge.type {
+                    background: #17a2b8;
+                    color: white;
+                }
+                
+                .info-section {
+                    margin: 25px 0;
+                    page-break-inside: avoid;
+                }
+                
+                .info-section h3 {
+                    color: #28a745;
+                    font-size: 18px;
+                    margin-bottom: 10px;
+                    padding-bottom: 8px;
+                    border-bottom: 2px solid #e9ecef;
+                    display: flex;
+                    align-items: center;
+                }
+                
+                .info-section h3::before {
+                    content: "▶";
+                    margin-right: 10px;
+                    color: #28a745;
+                    font-size: 14px;
+                }
+                
+                .info-section p {
+                    color: #555;
+                    text-align: justify;
+                    padding-left: 20px;
+                }
+                
+                .footer {
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 2px solid #e9ecef;
+                    text-align: center;
+                    color: #666;
+                    font-size: 12px;
+                }
+                
+                .date-info {
+                    text-align: right;
+                    color: #666;
+                    font-size: 14px;
+                    margin-bottom: 20px;
+                }
+                
+                @media print {
+                    body {
+                        padding: 20px;
+                    }
+                    
+                    .info-section {
+                        page-break-inside: avoid;
+                    }
+                    
+                    .header {
+                        page-break-after: avoid;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🌾 AgriExpert Library</h1>
+                <p class="subtitle">Impormasyon tungkol sa sakit, peste, at problema sa palayan</p>
+            </div>
+            
+            <div class="date-info">
+                Idinagdag: ${modalCreatedAt}
+            </div>
+            
+            <div class="image-container">
+                <img src="${modalImage}" alt="${modalTitle}">
+            </div>
+            
+            <div class="badges">
+                <span class="badge category">${modalCategory}</span>
+                <span class="badge type">${modalTypeBadge}</span>
+            </div>
+            
+            <h2 style="text-align: center; color: #2c3e50; margin: 30px 0; font-size: 24px;">${modalTitle}</h2>
+            
+            ${modalDescription ? `
+            <div class="info-section">
+                <h3>Deskripsyon</h3>
+                <p>${modalDescription}</p>
+            </div>
+            ` : ''}
+            
+            ${modalEffects && modalEffects !== 'Walang available na impormasyon.' ? `
+            <div class="info-section">
+                <h3>Epekto sa Palayan</h3>
+                <p>${modalEffects}</p>
+            </div>
+            ` : ''}
+            
+            ${modalOccurrence && modalOccurrence !== 'Walang available na impormasyon.' ? `
+            <div class="info-section">
+                <h3>Lugar at Panahon</h3>
+                <p>${modalOccurrence}</p>
+            </div>
+            ` : ''}
+            
+            ${modalIdentification && modalIdentification !== 'Walang available na impormasyon.' ? `
+            <div class="info-section">
+                <h3>Paano Matutukoy</h3>
+                <p>${modalIdentification}</p>
+            </div>
+            ` : ''}
+            
+            ${modalImportance && modalImportance !== 'Walang available na impormasyon.' ? `
+            <div class="info-section">
+                <h3>Kahalagahan</h3>
+                <p>${modalImportance}</p>
+            </div>
+            ` : ''}
+            
+            ${modalManagement && modalManagement !== 'Walang available na impormasyon.' ? `
+            <div class="info-section">
+                <h3>Pamamahala</h3>
+                <p>${modalManagement}</p>
+            </div>
+            ` : ''}
+            
+            <div class="footer">
+                <p><strong>AgriExpert</strong> - Kasama sa Pagsasaka</p>
+                <p>Printed on: ${new Date().toLocaleString('tl-PH', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}</p>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+    
+    // Wait for images to load before printing
+    printWindow.onload = function() {
+        setTimeout(function() {
+            printWindow.print();
+        }, 250);
+    };
+}
 </script>
-
-<script>
-    function openLibraryModal(paksa) {
-        fetch(`/get-library/${encodeURIComponent(paksa)}/`)
-        .then(response => {
-            if (!response.ok) throw new Error('Library info not found.');
-            return response.json();
-        })
-        .then(data => {
-            document.getElementById('libraryModalLabel').innerText = data.paksa;
-            document.getElementById('modal-deskripsyon').innerText = data.deskripsyon;
-            document.getElementById('modal-nagagawa').innerText = data.ano_ang_nagagawa_nito;
-            document.getElementById('modal-nangyayari').innerText = data.bakit_at_saan_ito_nangyayari;
-            document.getElementById('modal-matutukoy').innerText = data.paano_ito_matutukoy;
-            document.getElementById('modal-mahalaga').innerText = data.bakit_ito_mahalaga;
-            document.getElementById('modal-pangangasiwaan').innerText = data.paano_ito_pangangasiwaan;
-            var modal = new bootstrap.Modal(document.getElementById('libraryModal'));
-            modal.show();
-        })
-        .catch(error => {
-            alert(error);
-        });
-    }
-    </script>
-    
-
 {% endblock %}

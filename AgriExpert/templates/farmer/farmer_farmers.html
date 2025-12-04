@@ -688,10 +688,106 @@
 .feed-post {
     animation: fadeInUp 0.5s ease-out;
 }
+/* Toast Notification Styles */
+.toast-container {
+    z-index: 1060;
+}
+
+.custom-toast {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin-bottom: 10px;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.custom-toast .toast-body {
+    padding: 12px 16px;
+    font-weight: 500;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Confirmation Modal Styles */
+#confirmationModal .modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+#confirmationModal .modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+#confirmationModal .modal-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+}
+
+/* Loading spinner for buttons */
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Success/Error states */
+.bg-success {
+    background-color: #28a745 !important;
+}
+
+.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.bg-warning {
+    background-color: #ffc107 !important;
+}
+
+.bg-info {
+    background-color: #17a2b8 !important;
+}
 </style>
 
 <script>
-    // Simple getCookie function that works everywhere
+// Simple getCookie function that works everywhere
 window.getCookie = function(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -706,6 +802,161 @@ window.getCookie = function(name) {
     }
     return cookieValue;
 };
+
+// Toast notification system
+function showToast(message, type = 'info', duration = 3000) {
+    // Remove existing toasts
+    const existingToasts = document.querySelectorAll('.custom-toast');
+    existingToasts.forEach(toast => toast.remove());
+    
+    // Create toast container if it doesn't exist
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '1060';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Determine toast color
+    let bgClass, icon;
+    switch(type) {
+        case 'success':
+            bgClass = 'bg-success text-white';
+            icon = '<i class="fas fa-check-circle me-2"></i>';
+            break;
+        case 'error':
+            bgClass = 'bg-danger text-white';
+            icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+            break;
+        case 'warning':
+            bgClass = 'bg-warning text-dark';
+            icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+            break;
+        default:
+            bgClass = 'bg-info text-white';
+            icon = '<i class="fas fa-info-circle me-2"></i>';
+    }
+    
+    // Create toast
+    const toastId = 'toast-' + Date.now();
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center ${bgClass} border-0 custom-toast`;
+    toast.id = toastId;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${icon} ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Initialize and show toast
+    const bsToast = new bootstrap.Toast(toast, { 
+        delay: duration,
+        animation: true 
+    });
+    bsToast.show();
+    
+    // Remove toast after it's hidden
+    toast.addEventListener('hidden.bs.toast', function () {
+        toast.remove();
+        // Remove container if empty
+        if (toastContainer.children.length === 0) {
+            toastContainer.remove();
+        }
+    });
+}
+
+// Show confirmation modal
+function showConfirmationModal(title, message, confirmCallback, cancelCallback = null) {
+    // Remove existing modal if any
+    const existingModal = document.querySelector('#confirmationModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Create modal HTML
+    const modalHtml = `
+    <div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">${title}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="fas fa-question-circle fa-3x text-primary"></i>
+                    </div>
+                    <p class="mb-0">${message}</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelBtn">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirmBtn">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Get modal elements
+    const modalElement = document.getElementById('confirmationModal');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    
+    // Show modal
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+    // Set up event listeners
+    confirmBtn.onclick = function() {
+        modal.hide();
+        if (confirmCallback) confirmCallback();
+    };
+    
+    cancelBtn.onclick = function() {
+        modal.hide();
+        if (cancelCallback) cancelCallback();
+    };
+    
+    // Remove modal from DOM when hidden
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        modalElement.remove();
+    });
+}
+
+// Loading spinner functions
+function showLoading(button) {
+    if (button) {
+        const originalHTML = button.innerHTML;
+        button.dataset.originalHTML = originalHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
+        button.disabled = true;
+    }
+}
+
+function hideLoading(button) {
+    if (button && button.dataset.originalHTML) {
+        button.innerHTML = button.dataset.originalHTML;
+        button.disabled = false;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Enhanced search functionality
     const searchInput = document.querySelector('input[name="search"]');
@@ -770,14 +1021,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Upvote functionality
+    // Upvote functionality with proper UI feedback
     document.querySelectorAll('.upvote-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             const postId = this.dataset.postId;
             const upvoteBtn = document.getElementById(`upvote-btn-${postId}`);
             const upvoteText = document.getElementById(`upvote-text-${postId}`);
             
-            console.log(`Upvoting post ${postId}`);
+            // Show loading state
+            const originalText = upvoteText.textContent;
+            upvoteText.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
+            upvoteBtn.disabled = true;
             
             fetch(`/farmer/post/${postId}/upvote/`, {
                 method: 'POST',
@@ -787,25 +1041,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .then(response => {
-                console.log('Response status:', response.status);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('Upvote response:', data);
                 if (data.upvoted !== undefined) {
                     if (data.upvoted) {
                         upvoteBtn.style.backgroundColor = '#28a745';
                         upvoteBtn.style.color = 'white';
                         upvoteBtn.style.borderColor = '#28a745';
                         upvoteText.textContent = 'Upvoted';
+                        showToast('Post upvoted successfully!', 'success');
                     } else {
                         upvoteBtn.style.backgroundColor = 'transparent';
                         upvoteBtn.style.color = '#28a745';
                         upvoteBtn.style.borderColor = '#28a745';
                         upvoteText.textContent = 'Upvote';
+                        showToast('Upvote removed.', 'info');
                     }
                     
                     // Update upvote count display if it exists
@@ -814,16 +1068,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         upvoteCountElement.textContent = data.upvote_count;
                     }
                 } else {
-                    console.error('Unexpected response format:', data);
-                    alert('Error: Unexpected response from server.');
+                    showToast('Unexpected response from server.', 'error');
+                    upvoteText.textContent = originalText;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error updating upvote. Please try again.');
+                showToast('Error updating upvote. Please try again.', 'error');
+                upvoteText.textContent = originalText;
+            })
+            .finally(() => {
+                upvoteBtn.disabled = false;
             });
         });
     });
+
     // Quick comment toggle
     document.querySelectorAll('.comment-toggle-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
@@ -839,7 +1098,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Submit comment
+    // Submit comment with proper UI feedback
     document.querySelectorAll('.submit-comment-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             const postId = this.dataset.postId;
@@ -847,9 +1106,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const content = commentInput.value.trim();
             
             if (!content) {
-                alert('Please enter a comment.');
+                showToast('Please enter a comment.', 'warning');
+                commentInput.focus();
                 return;
             }
+            
+            // Show loading state
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Posting...';
+            this.disabled = true;
             
             fetch(`/farmer/post/${postId}/comment/`, {
                 method: 'POST',
@@ -859,21 +1124,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({content: content})
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     commentInput.value = '';
                     document.getElementById(`comment-form-${postId}`).style.display = 'none';
-                    alert('Comment added successfully!');
-                    // Optionally reload the page to show the new comment
-                    location.reload();
+                    showToast('Comment added successfully!', 'success');
+                    
+                    // Refresh the page after a short delay to show new comment
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
                 } else {
-                    alert('Error adding comment: ' + data.error);
+                    showToast('Error adding comment: ' + (data.error || 'Unknown error'), 'error');
+                    this.innerHTML = originalText;
+                    this.disabled = false;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error adding comment. Please try again.');
+                showToast('Error adding comment. Please try again.', 'error');
+                this.innerHTML = originalText;
+                this.disabled = false;
             });
         });
     });
@@ -888,92 +1165,97 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Add loading animation
+    // Add loading animation to forms
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
         form.addEventListener('submit', function() {
             const submitBtn = this.querySelector('button[type="submit"]');
             if (submitBtn) {
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
-                submitBtn.disabled = true;
+                showLoading(submitBtn);
             }
         });
     });
 
-    // Get CSRF token
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-    // Enable Bootstrap tooltips if needed
+    // Enable Bootstrap tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 });
 
-// Function to mark comment as solution
+// Function to mark comment as solution with confirmation modal
 function markFarmerCommentAsSolution(commentId, postId) {
-    fetch(`/farmer/mark-comment-solution/${commentId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            // Update UI to reflect solution status
-            const solutionBadge = document.querySelector(`#solution-badge-${commentId}`);
+    showConfirmationModal(
+        'Mark as Solution',
+        'Are you sure you want to mark this comment as the solution?',
+        function() {
+            // Show loading state on the button
             const markSolutionBtn = document.querySelector(`#mark-solution-btn-${commentId}`);
+            const originalText = markSolutionBtn.innerHTML;
+            markSolutionBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+            markSolutionBtn.disabled = true;
             
-            if (data.is_solution) {
-                // Mark as solution
-                if (solutionBadge) {
-                    solutionBadge.innerHTML = '<i class="fas fa-check me-1"></i>Solution';
-                    solutionBadge.classList.remove('bg-secondary', 'd-none');
-                    solutionBadge.classList.add('bg-success');
+            fetch(`/farmer/mark-comment-solution/${commentId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
                 }
-                if (markSolutionBtn) {
-                    markSolutionBtn.innerHTML = '<i class="fas fa-times me-1"></i>Unmark Solution';
-                    markSolutionBtn.classList.remove('btn-outline-success');
-                    markSolutionBtn.classList.add('btn-outline-danger');
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            } else {
-                // Unmark solution
-                if (solutionBadge) {
-                    solutionBadge.innerHTML = '';
-                    solutionBadge.classList.remove('bg-success');
-                    solutionBadge.classList.add('d-none');
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    
+                    // Update UI to reflect solution status
+                    const solutionBadge = document.querySelector(`#solution-badge-${commentId}`);
+                    const markSolutionBtn = document.querySelector(`#mark-solution-btn-${commentId}`);
+                    
+                    if (data.is_solution) {
+                        // Mark as solution
+                        if (solutionBadge) {
+                            solutionBadge.innerHTML = '<i class="fas fa-check me-1"></i>Solution';
+                            solutionBadge.classList.remove('bg-secondary', 'd-none');
+                            solutionBadge.classList.add('bg-success');
+                        }
+                        if (markSolutionBtn) {
+                            markSolutionBtn.innerHTML = '<i class="fas fa-times me-1"></i>Unmark Solution';
+                            markSolutionBtn.classList.remove('btn-outline-success');
+                            markSolutionBtn.classList.add('btn-outline-danger');
+                        }
+                    } else {
+                        // Unmark solution
+                        if (solutionBadge) {
+                            solutionBadge.innerHTML = '';
+                            solutionBadge.classList.remove('bg-success');
+                            solutionBadge.classList.add('d-none');
+                        }
+                        if (markSolutionBtn) {
+                            markSolutionBtn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Solution';
+                            markSolutionBtn.classList.remove('btn-outline-danger');
+                            markSolutionBtn.classList.add('btn-outline-success');
+                        }
+                    }
+                } else {
+                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+                    markSolutionBtn.innerHTML = originalText;
                 }
-                if (markSolutionBtn) {
-                    markSolutionBtn.innerHTML = '<i class="fas fa-check me-1"></i>Mark as Solution';
-                    markSolutionBtn.classList.remove('btn-outline-danger');
-                    markSolutionBtn.classList.add('btn-outline-success');
-                }
-            }
-        } else {
-            alert('Error: ' + data.error);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error marking comment as solution.', 'error');
+                markSolutionBtn.innerHTML = originalText;
+            })
+            .finally(() => {
+                markSolutionBtn.disabled = false;
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error marking comment as solution.');
-    });
+    );
 }
 </script>
-
 {% endblock %}

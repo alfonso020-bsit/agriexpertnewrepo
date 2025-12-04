@@ -1,1 +1,132 @@
 {% extends 'farmer/base_farmer.html' %}
+
+{% block title %}Farmer Profile{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+            <!-- Profile Header -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center">
+                            {% if farmer.profile_picture %}
+                                <img src="{{ farmer.profile_picture }}" class="rounded-circle img-fluid"
+                                     style="width:120px;height:120px;object-fit:cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-success d-flex align-items-center justify-content-center mx-auto"
+                                     style="width:120px;height:120px;">
+                                    <i class="fas fa-user fa-3x text-white"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-9">
+                            <h2 class="mb-1">{{ farmer.first_name }} {{ farmer.middle_name }} {{ farmer.last_name }}</h2>
+                            <p class="text-muted">
+                                <i class="fas fa-envelope me-2"></i>{{ farmer.email }}
+                            </p>
+                            <p class="text-muted">
+                                <i class="fas fa-phone me-2"></i>{{ farmer.phone_number }}
+                            </p>
+                            <p class="text-muted">
+                                <i class="fas fa-map-marker-alt me-2"></i>{{ farmer.barangay }}
+                            </p>
+                            <p class="text-muted">
+                                <i class="fas fa-seedling me-2"></i>Farm Size: {{ farmer.farm_size }} hectares
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h4>{{ farmer_stats.posts }}</h4>
+                            <p class="text-muted mb-0">Posts Created</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h4>{{ farmer_stats.predictions }}</h4>
+                            <p class="text-muted mb-0">Predictions Made</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h4>{{ farmer_stats.messages }}</h4>
+                            <p class="text-muted mb-0">Messages Sent</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Password Verification -->
+            {% if show_password_form %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning">
+                    <h5>Password Verification</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="verify_password">
+                        <div class="col-md-6 mx-auto">
+                            <input type="password" name="current_password" class="form-control mb-3" placeholder="Enter Password" required>
+                            <button type="submit" class="btn btn-primary w-100">Verify</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Profile Edit -->
+            {% if password_verified %}
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-primary text-white">
+                    <h5>Edit Profile</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_profile">
+                        <input type="hidden" name="password_verified" value="true">
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <input type="text" name="first_name" class="form-control mb-2" value="{{ farmer.first_name }}" required>
+                                <input type="text" name="middle_name" class="form-control mb-2" value="{{ farmer.middle_name }}">
+                                <input type="text" name="last_name" class="form-control mb-2" value="{{ farmer.last_name }}" required>
+                                <input type="email" name="email" class="form-control mb-2" value="{{ farmer.email }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" name="phone_number" class="form-control mb-2" value="{{ farmer.phone_number }}" required>
+                                <input type="text" name="barangay" class="form-control mb-2" value="{{ farmer.barangay }}" required>
+                                <input type="number" step="0.01" name="farm_size" class="form-control mb-2" value="{{ farmer.farm_size }}" required>
+                                <input type="file" name="profile_picture" class="form-control mb-2">
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <input type="password" name="new_password" class="form-control mb-2" placeholder="New Password">
+                        <input type="password" name="confirm_password" class="form-control mb-3" placeholder="Confirm Password">
+
+                        <button type="submit" class="btn btn-success w-100">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -100,6 +100,7 @@
         </div>
         <div class="card-body">
             <div class="expert-scroll-container d-flex align-items-center">
+                <!-- Replace this section in your farmer_experts.html -->
                 {% for expert in approved_experts %}
                     <div class="expert-card text-center approved">
                         <div class="profile-container position-relative">
@@ -127,23 +128,48 @@
                             </span>
                         </div>
 
-                        <!-- Clickable Link to View Profile -->
-                        <a href="{% url 'view_expertfromfarmer' expert.id %}" class="btn btn-primary mt-2 btn-sm">
-                            <i class="fas fa-eye me-1"></i>Tingnan ang Profile
-                        </a>
-                        <!-- Message Button -->
-                        {% if expert.id in existing_chat_experts %}
-                        <a href="{% url 'chat_detail' expert.id %}" class="btn btn-success mt-2 btn-sm">
-                            <i class="fas fa-comments me-1"></i>I-Message
-                        </a>
-                        {% else %}
-                        <a href="{% url 'send_message' expert.id %}" class="btn btn-success mt-2 btn-sm">
-                            <i class="fas fa-comments me-1"></i>I-Message
-                        </a>
-                        {% endif %}
+                        <!-- Compact Icon Buttons -->
+                        <div class="expert-actions mt-2 d-flex justify-content-center gap-2">
+                            <!-- View Profile Button (Eye Icon) -->
+                            <a href="{% url 'view_expertfromfarmer' expert.id %}" 
+                            class="btn btn-outline-primary btn-sm expert-action-btn"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top" 
+                            title="Tingnan ang Profile">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            
+                            <!-- Message Button -->
+                            {% if expert.id in existing_chat_experts %}
+                                <a href="{% url 'chat_detail' expert.id %}" 
+                                class="btn btn-outline-success btn-sm expert-action-btn"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                title="Mag-message (May Existing Chat)">
+                                    <i class="fas fa-comments"></i>
+                                </a>
+                            {% else %}
+                                <a href="{% url 'send_message' expert.id %}" 
+                                class="btn btn-outline-success btn-sm expert-action-btn"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                title="Simulan ang Chat">
+                                    <i class="fas fa-comment-dots"></i>
+                                </a>
+                            {% endif %}
+                            
+                            <!-- Optional: Contact Button (Phone/Email) -->
+                            <button class="btn btn-outline-info btn-sm expert-action-btn"
+                                    onclick="showExpertContact('{{ expert.first_name }}', '{{ expert.last_name }}', '{{ expert.contact_number }}', '{{ expert.email }}')"
+                                    data-bs-toggle="tooltip" 
+                                    data-bs-placement="top" 
+                                    title="Makipag-ugnayan">
+                                <i class="fas fa-phone-alt"></i>
+                            </button>
+                        </div>
                     </div>
                 {% empty %}
-                <p class="text-center mt-4">Walang aprubadong eksperto sa ngayon.</p>
+                    <p class="text-center mt-4">Walang aprubadong eksperto sa ngayon.</p>
                 {% endfor %}
             </div>
         </div>
@@ -507,6 +533,181 @@
 .expert-scroll-container::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
 }
+/* Expert Card Improvements */
+.expert-card {
+    display: inline-block;
+    margin: 0 15px;
+    padding: 15px;
+    text-align: center;
+    position: relative;
+    transition: transform 0.2s ease-in-out;
+    min-width: 200px;
+    max-width: 220px;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+
+.expert-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    border-color: #007bff;
+}
+
+.expert-profile {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #28a745;
+    transition: all 0.3s ease;
+    margin: 0 auto 10px;
+}
+
+.expert-profile:hover {
+    transform: scale(1.05);
+    border-color: #218838;
+}
+
+.expert-details {
+    margin-top: 8px;
+    font-size: 14px;
+    white-space: normal;
+    max-width: 100%;
+    margin-bottom: 12px;
+}
+
+/* Expert Action Buttons */
+.expert-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.expert-action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-width: 2px;
+    transition: all 0.2s ease;
+}
+
+.expert-action-btn:hover {
+    transform: scale(1.1);
+}
+
+.expert-action-btn.btn-outline-primary:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.expert-action-btn.btn-outline-success:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+.expert-action-btn.btn-outline-info:hover {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.verified-badge {
+    position: absolute;
+    top: 60px;
+    right: calc(50% - 40px - 8px);
+    background-color: #28a745;
+    color: white;
+    font-size: 16px;
+    padding: 4px 8px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+/* Contact Modal */
+.contact-info-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.contact-info-item:hover {
+    background: #e9ecef;
+}
+
+.contact-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.contact-icon.phone {
+    background-color: #28a745;
+    color: white;
+}
+
+.contact-icon.email {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .expert-card {
+        min-width: 160px;
+        margin: 0 10px;
+        padding: 12px;
+    }
+    
+    .expert-profile {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .verified-badge {
+        top: 50px;
+        right: calc(50% - 35px - 6px);
+        font-size: 14px;
+        padding: 3px 6px;
+    }
+    
+    .expert-action-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 576px) {
+    .expert-card {
+        min-width: 140px;
+        margin: 0 8px;
+    }
+    
+    .expert-details {
+        font-size: 12px;
+    }
+    
+    .expert-action-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+}
 </style>
 
 <script>
@@ -556,6 +757,115 @@ document.addEventListener('DOMContentLoaded', function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+// Add this to your <script> section
+function showExpertContact(firstName, lastName, contactNumber, email) {
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="expertContactModal" tabindex="-1" aria-labelledby="expertContactModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="expertContactModalLabel">
+                            <i class="fas fa-address-card me-2"></i>
+                            Impormasyon ng Kontak
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Isara"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-4">
+                            <h5 class="fw-bold">${firstName} ${lastName}</h5>
+                            <p class="text-muted">Agricultural Expert</p>
+                        </div>
+                        
+                        ${contactNumber ? `
+                        <div class="contact-info-item">
+                            <div class="contact-icon phone">
+                                <i class="fas fa-phone-alt"></i>
+                            </div>
+                            <div>
+                                <strong>Telepono</strong>
+                                <p class="mb-0">${contactNumber}</p>
+                                <small class="text-muted">Mag-text o tumawag</small>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${email ? `
+                        <div class="contact-info-item">
+                            <div class="contact-icon email">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div>
+                                <strong>Email</strong>
+                                <p class="mb-0">${email}</p>
+                                <small class="text-muted">Magpadala ng email</small>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${!contactNumber && !email ? `
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Walang available na impormasyon ng kontak para sa ekspertong ito.
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Isara
+                        </button>
+                        ${contactNumber ? `
+                        <a href="tel:${contactNumber}" class="btn btn-success">
+                            <i class="fas fa-phone me-1"></i>Tumawag
+                        </a>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('expertContactModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal
+    const contactModal = new bootstrap.Modal(document.getElementById('expertContactModal'));
+    contactModal.show();
+    
+    // Remove modal from DOM after hiding
+    document.getElementById('expertContactModal').addEventListener('hidden.bs.modal', function () {
+        this.remove();
+    });
+}
+
+// Initialize Bootstrap tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips for action buttons
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('.expert-action-btn'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            trigger: 'hover'
+        });
+    });
+    
+    // Optional: Add smooth hover effects
+    const expertCards = document.querySelectorAll('.expert-card');
+    expertCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.zIndex = '10';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.zIndex = '1';
+        });
     });
 });
 </script>

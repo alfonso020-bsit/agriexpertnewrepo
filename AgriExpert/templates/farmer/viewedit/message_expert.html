@@ -1,74 +1,28 @@
 {% extends 'farmer/base_farmer.html' %}
-
-{% comment %} {% extends 'farmer/base_farmer.html' %}
-
 {% block content %}
 <div class="container mt-4">
-    <h2 class="text-center fw-bold">Makipag-ugnayan kay {{ expert.first_name }}</h2>
-
-    <form method="POST">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label for="message" class="form-label">Mensahe:</label>
-            <textarea id="message" name="message" class="form-control" rows="4" required></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-success">Ipadala</button>
-    </form>
-</div>
-{% endblock %} {% endcomment %}
-
-{% comment %} {% block content %}
-<div class="container mt-4">
-    <h2 class="text-center fw-bold">Makipag-ugnayan kay {{ expert.first_name }}</h2>
-
-    <form method="POST" enctype="multipart/form-data" action="{% url 'send_message' expert.id %}">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label for="message" class="form-label">Mensahe:</label>
-            <textarea id="message" name="message_text" class="form-control" rows="4" required></textarea>
-        </div>
-    
-        <div class="mb-3">
-            <label for="image" class="form-label">Mag-upload ng larawan (Opsyonal):</label>
-            <input type="file" id="image" name="image" class="form-control">
-        </div>
-    
-        <button type="submit" class="btn btn-success">Ipadala</button>
-    </form>
-</div>
-{% endblock %} {% endcomment %}
-{% comment %} {% block content %}
-<div class="container mt-4">
-    <h2 class="text-center fw-bold">Makipag-ugnayan kay {{ expert.first_name }}</h2>
-
-    {% if existing_messages %}
-        <!-- If conversation exists, redirect to chat_detail -->
-        <div class="text-center">
-            <a href="{% url 'chat_detail' expert.id %}" class="btn btn-primary">Tingnan ang Chat</a>
-        </div>
-    {% else %}
-        <!-- Otherwise, show the message form -->
-        <form method="POST" enctype="multipart/form-data" action="{% url 'send_message' expert.id %}">
-            {% csrf_token %}
-            <div class="mb-3">
-                <label for="message" class="form-label">Mensahe:</label>
-                <textarea id="message" name="message_text" class="form-control" rows="4" required></textarea>
+    <!-- Expert Profile Display -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex align-items-center">
+                {% if expert.profile_picture %}
+                    <img src="{{ expert.profile_picture }}" alt="{{ expert.first_name }}" 
+                         class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle bg-secondary me-3 d-flex align-items-center justify-content-center" 
+                         style="width: 60px; height: 60px;">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                {% endif %}
+                <div>
+                    <h5 class="fw-bold mb-1">Makipag-ugnayan kay {{ expert.first_name }}</h5>
+                    <p class="text-muted mb-0">{{ expert.position|default:"Agricultural Expert" }}</p>
+                </div>
             </div>
-        
-            <div class="mb-3">
-                <label for="image" class="form-label">Mag-upload ng larawan (Opsyonal):</label>
-                <input type="file" id="image" name="image" class="form-control">
-            </div>
-        
-            <button type="submit" class="btn btn-success">Ipadala</button>
-        </form>
-    {% endif %}
-</div>
-{% endblock %} {% endcomment %}
-{% block content %}
-<div class="container mt-4">
-    <h2 class="text-center fw-bold">Makipag-ugnayan kay {{ expert.first_name }}</h2>
+        </div>
+    </div>
+
+    <h2 class="text-center fw-bold mb-4">Magpadala ng Mensahe</h2>
 
     {% if messages %}
         {% for message in messages %}
@@ -77,26 +31,386 @@
     {% endif %}
 
     {% if existing_messages %}
-        <!-- ✅ Redirect to chat if conversation exists -->
+        <!-- Redirect to chat if conversation exists -->
         <div class="text-center">
             <a href="{% url 'chat_detail' expert.id %}" class="btn btn-primary">Tingnan ang Chat</a>
         </div>
     {% else %}
-        <!-- ✅ Show the message form -->
-        <form method="POST" enctype="multipart/form-data" action="{% url 'send_message' expert.id %}">
+        <!-- Show the message form -->
+        <form method="POST" enctype="multipart/form-data" action="{% url 'send_message' expert.id %}" id="messageForm">
             {% csrf_token %}
+            
+            <!-- Auto-expanding Textarea -->
             <div class="mb-3">
-                <label for="message" class="form-label">Mensahe:</label>
-                <textarea id="message" name="message_text" class="form-control" rows="4" required></textarea>
+                <label for="message" class="form-label fw-semibold">Mensahe:</label>
+                <textarea id="message" name="message_text" class="form-control auto-expand" 
+                          rows="4" required placeholder="Ilagay ang iyong mensahe dito..." 
+                          oninput="autoExpand(this)"></textarea>
             </div>
 
-            <div class="mb-3">
-                <label for="image" class="form-label">Mag-upload ng larawan (Opsyonal):</label>
-                <input type="file" id="image" name="image" class="form-control">
+            <!-- Image Upload with Camera Option -->
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Mag-upload ng larawan (Opsyonal):</label>
+                
+                <!-- Upload Options -->
+                <div class="d-flex gap-2 mb-3">
+                    <!-- File Upload -->
+                    <div class="flex-fill">
+                        <label for="image" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-folder-open me-2"></i>Pumili ng Larawan
+                        </label>
+                        <input type="file" id="image" name="image" class="d-none" accept="image/*" onchange="previewImage(event)">
+                    </div>
+                    
+                    <!-- Camera Capture -->
+                    <div class="flex-fill">
+                        <button type="button" class="btn btn-outline-success w-100" onclick="openCamera()">
+                            <i class="fas fa-camera me-2"></i>Kunang Larawan
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Image Preview -->
+                <div id="imagePreview" class="mt-3 d-none">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-semibold mb-0">Preview ng Larawan:</h6>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeImage()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <img id="previewImg" class="img-fluid rounded" style="max-height: 200px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hidden camera input that will be created dynamically -->
+                <input type="file" id="cameraInput" class="d-none" accept="image/*">
             </div>
 
-            <button type="submit" class="btn btn-success">Ipadala</button>
+            <button type="submit" class="btn btn-success w-100">
+                <i class="fas fa-paper-plane me-2"></i>Ipadala
+            </button>
         </form>
     {% endif %}
 </div>
+
+<!-- Camera Modal (for desktop or advanced camera) -->
+<div class="modal fade" id="cameraModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-camera me-2"></i>Kunang Larawan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="cameraContainer" class="text-center">
+                    <p class="text-muted">Ang camera ay bubuksan sa iyong device...</p>
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kanselahin</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Auto-expanding textarea */
+.auto-expand {
+    resize: none !important;
+    overflow: hidden !important;
+    min-height: 100px !important;
+    max-height: 400px !important;
+    transition: height 0.2s ease;
+}
+
+/* Image preview */
+#previewImg {
+    max-width: 100%;
+    object-fit: contain;
+}
+
+/* Camera feed styling */
+#cameraFeed {
+    width: 100%;
+    max-height: 400px;
+    border-radius: 8px;
+}
+
+.capture-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 4px solid white;
+    background: #28a745;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.capture-btn:hover {
+    background: #218838;
+}
+</style>
+
+<script>
+// Auto-expand textarea function
+function autoExpand(textarea) {
+    textarea.style.height = 'auto';
+    const newHeight = Math.max(textarea.scrollHeight, 100);
+    const maxHeight = 400;
+    textarea.style.height = Math.min(newHeight, maxHeight) + 'px';
+}
+
+// Image preview for file upload
+function previewImage(event) {
+    const input = event.target;
+    const preview = document.getElementById('previewImg');
+    const previewContainer = document.getElementById('imagePreview');
+    
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        
+        if (file.size > maxSize) {
+            alert('Ang larawan ay masyadong malaki. Pumili ng file na mas maliit sa 5MB.');
+            input.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            previewContainer.classList.remove('d-none');
+            // Also set the image input for form submission
+            document.getElementById('image').files = input.files;
+        };
+        
+        reader.readAsDataURL(file);
+    }
+}
+
+// Open camera function
+function openCamera() {
+    // Check if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+        // For mobile devices - use simple input with capture
+        const cameraInput = document.getElementById('cameraInput');
+        
+        // Remove any existing event listeners
+        const newInput = cameraInput.cloneNode(true);
+        cameraInput.parentNode.replaceChild(newInput, cameraInput);
+        
+        // Set up the new input
+        newInput.setAttribute('capture', 'environment'); // Use rear camera
+        newInput.onchange = function(e) {
+            handleCameraCapture(e);
+        };
+        
+        // Trigger click
+        newInput.click();
+    } else {
+        // For desktop - show modal with advanced camera options
+        showCameraModal();
+    }
+}
+
+// Handle camera capture from mobile
+function handleCameraCapture(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        const preview = document.getElementById('previewImg');
+        const previewContainer = document.getElementById('imagePreview');
+        
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            previewContainer.classList.remove('d-none');
+            
+            // Also set the main image input for form submission
+            const mainInput = document.getElementById('image');
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            mainInput.files = dataTransfer.files;
+        };
+        
+        reader.readAsDataURL(file);
+    }
+}
+
+// Advanced camera for desktop
+function showCameraModal() {
+    const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
+    const cameraContainer = document.getElementById('cameraContainer');
+    
+    // Clear previous content
+    cameraContainer.innerHTML = `
+        <p class="text-muted">Sinisimulan ang camera...</p>
+        <div class="spinner-border text-success" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Try to access camera
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: 'environment', // Prefer rear camera
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            } 
+        })
+        .then(stream => {
+            // Success - show camera feed
+            cameraContainer.innerHTML = `
+                <video id="cameraFeed" autoplay playsinline></video>
+                <div class="mt-3">
+                    <button class="btn btn-success capture-btn" onclick="captureFromCamera()">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                </div>
+            `;
+            
+            const video = document.getElementById('cameraFeed');
+            video.srcObject = stream;
+            
+            // Store stream for cleanup
+            window.cameraStream = stream;
+        })
+        .catch(err => {
+            // Camera access failed - fallback to file input
+            console.error('Camera error:', err);
+            cameraContainer.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Hindi ma-access ang camera. Mangyaring pumili ng larawan mula sa iyong gallery.
+                </div>
+                <input type="file" id="desktopCameraInput" class="form-control" accept="image/*" onchange="handleCameraCapture(event)">
+            `;
+        });
+    } else {
+        // No camera support
+        cameraContainer.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Ang iyong browser ay hindi sumusuporta sa direktang camera access.
+            </div>
+            <input type="file" id="desktopCameraInput" class="form-control" accept="image/*" onchange="handleCameraCapture(event)">
+        `;
+    }
+}
+
+// Capture photo from camera feed
+function captureFromCamera() {
+    const video = document.getElementById('cameraFeed');
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Convert canvas to blob
+    canvas.toBlob(blob => {
+        // Create file from blob
+        const file = new File([blob], `camera_${Date.now()}.jpg`, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+        });
+        
+        // Process the captured image
+        const preview = document.getElementById('previewImg');
+        const previewContainer = document.getElementById('imagePreview');
+        const mainInput = document.getElementById('image');
+        
+        preview.src = canvas.toDataURL('image/jpeg');
+        previewContainer.classList.remove('d-none');
+        
+        // Set the file for form submission
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        mainInput.files = dataTransfer.files;
+        
+        // Close modal and stop camera
+        closeCameraModal();
+    }, 'image/jpeg', 0.8);
+}
+
+// Close camera modal
+function closeCameraModal() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('cameraModal'));
+    
+    // Stop camera stream if exists
+    if (window.cameraStream) {
+        window.cameraStream.getTracks().forEach(track => track.stop());
+        window.cameraStream = null;
+    }
+    
+    modal.hide();
+}
+
+// Remove image
+function removeImage() {
+    document.getElementById('imagePreview').classList.add('d-none');
+    document.getElementById('image').value = '';
+    document.getElementById('cameraInput').value = '';
+    document.getElementById('previewImg').src = '';
+}
+
+// Initialize textarea on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('message');
+    if (textarea) {
+        autoExpand(textarea);
+        textarea.addEventListener('input', function() {
+            autoExpand(this);
+        });
+    }
+    
+    // Close camera stream when modal is hidden
+    document.getElementById('cameraModal').addEventListener('hidden.bs.modal', function() {
+        if (window.cameraStream) {
+            window.cameraStream.getTracks().forEach(track => track.stop());
+            window.cameraStream = null;
+        }
+    });
+    
+    // Form validation
+    const form = document.getElementById('messageForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const message = document.getElementById('message').value.trim();
+            
+            if (message.length < 5) {
+                e.preventDefault();
+                alert('Mangyaring maglagay ng mensahe na hindi bababa sa 5 characters.');
+                return false;
+            }
+            
+            // Add loading state to button
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Pinapadala...';
+            submitBtn.disabled = true;
+            
+            return true;
+        });
+    }
+});
+</script>
 {% endblock %}

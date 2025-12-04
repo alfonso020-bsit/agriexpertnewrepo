@@ -1,176 +1,361 @@
 {% extends 'farmer/base_farmer.html' %}
-
 {% block content %}
-<div class="container mt-5 mb-5 p-4 rounded shadow-sm" style="background-color: #e6f4ea;">
-    <h2 class="text-success mb-4 fw-bold">I-edit ang Farmer Post</h2>
-    <form id="postForm" method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h2 mb-0 text-success">Edit Post</h1>
+                    <p class="text-muted mb-0">Update your post details and images</p>
+                </div>
+                <a href="{% url 'farmer_collaboration' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Posts
+                </a>
+            </div>
 
-        <!-- Pamagat -->
-        <div class="form-group mb-3">
-            <label for="id_title" class="form-label text-success fw-semibold">Pamagat</label>
-            <input type="text" name="title" id="id_title" class="form-control fw-bold border-success" value="{{ form.title.value }}" required>
-        </div>
+            <!-- Edit Form -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data" id="editPostForm">
+                        {% csrf_token %}
+                        
+                        <!-- Hidden input for deleted images -->
+                        <input type="hidden" name="deleted_images" id="deletedImages" value="">
+                        
+                        <!-- Post Title -->
+                        <div class="mb-4">
+                            <label for="{{ form.title.id_for_label }}" class="form-label fw-semibold">Post Title *</label>
+                            <input type="text" 
+                                   name="title" 
+                                   id="{{ form.title.id_for_label }}" 
+                                   class="form-control {% if form.title.errors %}is-invalid{% endif %}" 
+                                   value="{{ form.title.value|default:post.title }}" 
+                                   required>
+                            {% if form.title.errors %}
+                                <div class="invalid-feedback">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
 
-        <!-- Kapisyon -->
-        <div class="form-group mb-3">
-            <label for="id_caption" class="form-label text-success fw-semibold">Kapisyon</label>
-            <textarea name="caption" id="id_caption" class="form-control border-success" rows="5" required style="text-align: justify;">{{ form.caption.value }}</textarea>
-        </div>
+                        <!-- Post Caption -->
+                        <div class="mb-4">
+                            <label for="{{ form.caption.id_for_label }}" class="form-label fw-semibold">Post Caption *</label>
+                            <textarea name="caption" 
+                                      id="{{ form.caption.id_for_label }}" 
+                                      class="form-control {% if form.caption.errors %}is-invalid{% endif %}" 
+                                      rows="8"
+                                      required>{{ form.caption.value|default:post.caption }}</textarea>
+                            {% if form.caption.errors %}
+                                <div class="invalid-feedback">{{ form.caption.errors.0 }}</div>
+                            {% endif %}
+                            <div class="text-muted small mt-1">No character limit - share your complete farming story!</div>
+                        </div>
 
-        <!-- Mga Larawan na Na-upload Na -->
-        <div class="form-group mb-3">
-            <label class="form-label text-success fw-semibold">Mga Na-upload na Larawan:</label>
-            <div class="d-flex flex-wrap gap-2">
-                {% for image in post.images.all %}
-                    <div class="position-relative">
-                        <img src="{{ image.image_url }}" style="max-width: 100px;" class="border border-success rounded">
-                        <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 delete-existing-image"
-                            data-image-id="{{ image.id }}" style="border-radius: 50%;">&times;</button>
-                    </div>
-                {% empty %}
-                    <p>Walang na-upload na larawan.</p>
-                {% endfor %}
+                        <!-- Current Images -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Current Images</label>
+                            <div class="row g-3" id="currentImagesContainer">
+                                {% for image in post.images.all %}
+                                <div class="col-md-4 col-6 image-item" data-image-id="{{ image.id }}">
+                                    <div class="position-relative border rounded p-2">
+                                        <img src="{{ image.image_url }}" 
+                                             alt="Current Image" 
+                                             class="img-fluid rounded" 
+                                             style="height: 150px; object-fit: cover; width: 100%;">
+                                        <button type="button" 
+                                                class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 delete-image-btn"
+                                                data-image-id="{{ image.id }}"
+                                                style="width: 30px; height: 30px; padding: 0;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if post.images.count == 0 %}
+                                <p class="text-muted small">No images uploaded yet.</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Add New Images -->
+                        <div class="mb-4">
+                            <label for="new_images" class="form-label fw-semibold">Add New Images</label>
+                            <input type="file" 
+                                   name="new_images" 
+                                   id="new_images" 
+                                   class="form-control" 
+                                   multiple 
+                                   accept="image/*">
+                            <div class="text-muted small mt-1">You can select multiple images (JPG, PNG, GIF)</div>
+                        </div>
+
+                        <!-- Preview New Images -->
+                        <div class="mb-4 d-none" id="newImagesPreviewContainer">
+                            <label class="form-label fw-semibold">New Images Preview</label>
+                            <div class="row g-3" id="newImagesPreview"></div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between pt-3 border-top">
+                            <button type="button" 
+                                    class="btn btn-danger" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#deletePostModal">
+                                <i class="fas fa-trash me-1"></i>Delete Post
+                            </button>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'farmer_collaboration' %}" class="btn btn-secondary">
+                                    Cancel
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save me-1"></i>Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-
-        <!-- Mag-upload ng Bago (Max total: 4) -->
-        <div class="form-group mb-3">
-            <label for="imageInput" class="form-label text-success fw-semibold">Mag-upload ng Mga Bagong Larawan (Hanggang 4):</label>
-            <input type="file" id="imageInput" class="form-control border-success" accept="image/*" multiple>
-            <div id="image-preview" class="d-flex flex-wrap mt-3 gap-2"></div>
-        </div>
-
-        <!-- Hidden Inputs for Upload -->
-        <div id="hidden-images-container"></div>
-
-        <!-- Mga Button -->
-        <button type="submit" class="btn btn-success">💾 I-save ang Mga Pagbabago</button>
-        <a href="{% url 'farmer_collaboration' %}" class="btn btn-secondary">Kanselahin</a>
-    </form>
+    </div>
 </div>
 
-<!-- Modal Confirmation for Deleting Image -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+<!-- Delete Post Modal -->
+<div class="modal fade" id="deletePostModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-danger">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="deleteModalLabel">Babala</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Isara"></button>
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger">Delete Post</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body text-dark fw-semibold" id="deleteWarningMessage">
-                Sigurado ka bang nais mong tanggalin ang larawang ito?
+            <div class="modal-body text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-exclamation-triangle text-danger fa-3x"></i>
+                </div>
+                <h5>Are you sure?</h5>
+                <p class="text-muted">This will permanently delete your post and all associated images.</p>
+                <p class="text-muted small">This action cannot be undone.</p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Oo, Tanggalin</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hindi</button>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <form method="POST" action="{% url 'delete_farmer_post' post.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Yes, Delete Post
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Image Preview Modal -->
-<div class="modal fade" id="imageViewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content bg-dark">
-        <div class="modal-body p-0">
-          <img id="modalPreviewImage" src="" class="w-100" style="object-fit: contain; max-height: 90vh;">
-        </div>
-      </div>
-    </div>
-  </div>
+<style>
+/* Custom styles for form elements */
+.form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 150px;
+}
+
+.image-item.deleted {
+    opacity: 0.5;
+    position: relative;
+}
+
+.image-item.deleted::after {
+    content: "Deleted";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.delete-image-btn:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* Preview image styles */
+.preview-image-container {
+    position: relative;
+}
+
+.remove-preview-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 25px;
+    height: 25px;
+    padding: 0;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
 
 <script>
-    let selectedImages = [];
-    let maxImages = 4 - document.querySelectorAll('.delete-existing-image').length;
-
-    // Delete image with modal confirmation
-    let deleteImageBtn = null;
-    document.querySelectorAll('.delete-existing-image').forEach(btn => {
-        btn.addEventListener('click', (event) => {
-            // Store the clicked delete button to use in the confirmation modal
-            deleteImageBtn = event.target;
+document.addEventListener('DOMContentLoaded', function() {
+    const deletedImages = [];
+    const deletedImagesInput = document.getElementById('deletedImages');
+    
+    // Handle deletion of existing images
+    document.querySelectorAll('.delete-image-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const imageId = this.getAttribute('data-image-id');
+            const imageItem = this.closest('.image-item');
             
-            // Show the modal
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            deleteModal.show();
+            if (!deletedImages.includes(imageId)) {
+                deletedImages.push(imageId);
+                imageItem.classList.add('deleted');
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-check"></i>';
+                this.classList.remove('btn-danger');
+                this.classList.add('btn-secondary');
+                
+                // Update hidden input
+                deletedImagesInput.value = deletedImages.join(',');
+                
+                showToast('Image marked for deletion. Save changes to apply.', 'info');
+            }
         });
     });
-    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-        if (deleteImageBtn) {
-            const imgDiv = deleteImageBtn.parentElement;
-            imgDiv.remove();
-            maxImages--; // Adjust max count of images
-        }
     
-        // Properly close the already shown modal
-        const deleteModalEl = document.getElementById('deleteModal');
-        const deleteModalInstance = bootstrap.Modal.getInstance(deleteModalEl);
-        deleteModalInstance.hide();
+    // Preview new images
+    document.getElementById('new_images').addEventListener('change', function(e) {
+        const previewContainer = document.getElementById('newImagesPreviewContainer');
+        const previewDiv = document.getElementById('newImagesPreview');
+        previewDiv.innerHTML = '';
+        
+        if (this.files.length > 0) {
+            previewContainer.classList.remove('d-none');
+            
+            Array.from(this.files).forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const colDiv = document.createElement('div');
+                    colDiv.className = 'col-md-4 col-6';
+                    colDiv.innerHTML = `
+                        <div class="position-relative border rounded p-2 preview-image-container">
+                            <img src="${e.target.result}" 
+                                 alt="Preview" 
+                                 class="img-fluid rounded" 
+                                 style="height: 150px; object-fit: cover; width: 100%;">
+                            <button type="button" 
+                                    class="btn btn-danger btn-sm remove-preview-btn"
+                                    onclick="removePreviewImage(${index})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                    previewDiv.appendChild(colDiv);
+                };
+                reader.readAsDataURL(file);
+            });
+        } else {
+            previewContainer.classList.add('d-none');
+        }
     });
-
-    document.getElementById('imageInput').addEventListener('change', function(event) {
-        const files = Array.from(event.target.files);
-
-        if ((selectedImages.length + files.length + document.querySelectorAll('.delete-existing-image').length) > 4) {
-            alert(`Hanggang 4 na larawan lang ang pinapayagan (kasama ang dati).`);
-            event.target.value = '';
+    
+    // Form validation
+    document.getElementById('editPostForm').addEventListener('submit', function(e) {
+        const title = document.getElementById('{{ form.title.id_for_label }}').value.trim();
+        const caption = document.getElementById('{{ form.caption.id_for_label }}').value.trim();
+        
+        if (!title) {
+            e.preventDefault();
+            showAlert('Please enter a title for your post.', 'danger');
+            document.getElementById('{{ form.title.id_for_label }}').focus();
             return;
         }
-
-        files.forEach((file) => {
-            selectedImages.push(file);
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const previewDiv = document.getElementById('image-preview');
-
-                const wrapper = document.createElement('div');
-                wrapper.style.position = 'relative';
-
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.style.maxWidth = '100px';
-                img.className = 'border border-success rounded';
-
-                const delBtn = document.createElement('button');
-                delBtn.innerHTML = '&times;';
-                delBtn.type = 'button';
-                delBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0';
-                delBtn.style.borderRadius = '50%';
-                delBtn.onclick = () => {
-                    previewDiv.removeChild(wrapper);
-                    selectedImages = selectedImages.filter(imgFile => imgFile !== file);
-                    updateHiddenInputs();
-                };
-
-                wrapper.appendChild(img);
-                wrapper.appendChild(delBtn);
-                previewDiv.appendChild(wrapper);
-            };
-            reader.readAsDataURL(file);
-        });
-
-        updateHiddenInputs();
-        event.target.value = '';
+        
+        if (!caption) {
+            e.preventDefault();
+            showAlert('Please enter a caption for your post.', 'danger');
+            document.getElementById('{{ form.caption.id_for_label }}').focus();
+            return;
+        }
+        
+        // Show loading state
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
     });
+});
 
-    function updateHiddenInputs() {
-        const container = document.getElementById('hidden-images-container');
-        container.innerHTML = '';
+// Remove preview image (global function)
+function removePreviewImage(index) {
+    const input = document.getElementById('new_images');
+    const dt = new DataTransfer();
+    const files = Array.from(input.files);
+    
+    files.forEach((file, i) => {
+        if (i !== index) {
+            dt.items.add(file);
+        }
+    });
+    
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change'));
+}
 
-        selectedImages.forEach((file) => {
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
+// Show toast notification
+function showToast(message, type) {
+    const toastHtml = `
+        <div class="position-fixed top-0 end-0 p-3" style="z-index: 1055">
+            <div class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const toastContainer = document.createElement('div');
+    toastContainer.innerHTML = toastHtml;
+    document.body.appendChild(toastContainer);
+    
+    const toast = new bootstrap.Toast(toastContainer.querySelector('.toast'));
+    toast.show();
+    
+    // Remove after hidden
+    toastContainer.querySelector('.toast').addEventListener('hidden.bs.toast', function() {
+        toastContainer.remove();
+    });
+}
 
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.name = 'images';
-            input.className = 'd-none';
-            input.files = dataTransfer.files;
-
-            container.appendChild(input);
-        });
-    }
+// Show alert
+function showAlert(message, type) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    const alertContainer = document.createElement('div');
+    alertContainer.innerHTML = alertHtml;
+    document.querySelector('.card-body').prepend(alertContainer);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (alertContainer.querySelector('.alert')) {
+            alertContainer.querySelector('.alert').remove();
+        }
+    }, 5000);
+}
 </script>
 {% endblock %}
