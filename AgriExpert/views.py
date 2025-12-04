@@ -915,14 +915,30 @@ def farmer_home(request):
 
     return render(request, 'farmer/home.html', context)
 
-
+import os
 from google import genai
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-# Initialize client (Option A = auto env key, Option B = explicit key)
-client = genai.Client(api_key="AIzaSyAynoIbQ8T3HH-iqzmrkAKBDfmL0rhGtnU") 
+class AgriBotClient:
+    """Singleton client to avoid reinitializing"""
+    _instance = None
+    
+    @classmethod
+    def get_client(cls):
+        if cls._instance is None:
+            api_key = os.getenv('GEMINI_API_KEY')
+            if not api_key:
+                # Try to get from Django settings
+                from django.conf import settings
+                api_key = getattr(settings, 'GEMINI_API_KEY', None)
+            
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY not configured")
+            
+            cls._instance = genai.Client(api_key=api_key)
+        return cls._instance
 
 @csrf_exempt
 def agribot_chat(request):
@@ -930,32 +946,44 @@ def agribot_chat(request):
         return JsonResponse({"error": "Invalid request method"}, status=405)
 
     try:
+        # Get client (will fail if no API key)
+        client = AgriBotClient.get_client()
+        
         data = json.loads(request.body)
         user_message = data.get("message", "").strip()
 
         if not user_message:
             return JsonResponse({"error": "Empty message"}, status=400)
 
-        # AgriBot personality (Adjust freely)
+        # AgriBot personality
         system_instruction = (
             "You are AgriBot, an expert assistant specializing ONLY in rice farming, "
             "field management, pests, diseases, and cultivation techniques."
         )
 
-        full_prompt = f"{system_instruction}\nUser: {user_message}"
-
-        # NEW API REQUEST (Gemini 2.5 Flash)
+        # Using the new API format
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=full_prompt
+            contents=[system_instruction, user_message]
         )
 
         return JsonResponse({"response": response.text}, status=200)
 
+    except ValueError as e:
+        # API key not configured
+        return JsonResponse({
+            "error": "Service configuration error",
+            "message": str(e)
+        }, status=503)
     except Exception as e:
-        print("AGRIBOT ERROR:", e)
-        return JsonResponse({"error": str(e)}, status=500)
-
+        # Log error for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"AgriBot error: {str(e)}", exc_info=True)
+        
+        return JsonResponse({
+            "error": "Unable to process request"
+        }, status=500)
 
 # CHANGED THIS NOVEMBER 7, 2025
 # def farmer_home(request):
@@ -3320,8 +3348,135 @@ def farmer_scan(request):
     return render(request, 'farmer/farmer_scan.html')
 
 def farmer_library(request):
-    return render(request, 'farmer/farmer_library.html')
+    # Get all library items
+    library_items = Library.objects.all().order_by('paksa')
+    
+    # Calculate statistics
+    total_items = library_items.count()
+    
+    # Categorization logic
+    disease_keywords = ['sakit', 'virus', 'fungal', 'bacterial', 'infection', 'disease', 'rot', 'blight', 'blast', 'scald', 'spot']
+    pest_keywords = ['peste', 'insekt', 'uod', 'bug', 'snail', 'caterpillar', 'borer', 'hopper', 'fly', 'weevil', 'midge', 'roller', 'maya', 'munia', 'hispa', 'beetle']
+    
+    disease_count = 0
+    pest_count = 0
+    
+    # Process and categorize items - FILTER OUT UNCATEGORIZED
+    categorized_items = []
+    for item in library_items:
+        paksa_lower = item.paksa.lower()
+        desc_lower = (item.deskripsyon or '').lower()
+        
+        # Determine if it's a pest
+        is_pest = any(keyword in paksa_lower or keyword in desc_lower for keyword in pest_keywords)
+        
+        # Determine category based on keywords
+        category = 'uncategorized'
+        
+        # Check for grain/butil keywords
+        grain_keywords = ['grain', 'butil', 'dead heart', 'false smut', 'discoloration']
+        if any(keyword in paksa_lower or keyword in desc_lower for keyword in grain_keywords):
+            category = 'grain'
+        
+        # Check for leaf/dahon keywords
+        leaf_keywords = ['leaf', 'dahon', 'bakanae', 'stunt', 'stripes', 'tungro', 'scald', 'spot', 'blast', 'blight', 'blast']
+        if any(keyword in paksa_lower or keyword in desc_lower for keyword in leaf_keywords):
+            category = 'leaf'
+        
+        # Check for stem/tangkay keywords  
+        stem_keywords = ['stem', 'tangkay', 'rot', 'blight', 'rust']
+        if any(keyword in paksa_lower or keyword in desc_lower for keyword in stem_keywords):
+            category = 'stem'
+        
+        # Check for pest keywords
+        if is_pest:
+            category = 'pest'
+            pest_count += 1
+        else:
+            disease_count += 1
+        
+        # If still uncategorized, try to guess from title
+        if category == 'uncategorized':
+            if 'leaf' in paksa_lower or 'dahon' in paksa_lower:
+                category = 'leaf'
+            elif 'stem' in paksa_lower or 'tangkay' in paksa_lower:
+                category = 'stem'
+            elif 'grain' in paksa_lower or 'butil' in paksa_lower:
+                category = 'grain'
+            elif any(pest_word in paksa_lower for pest_word in ['pest', 'bug', 'insect', 'worm', 'borer', 'hopper']):
+                category = 'pest'
+        
+        # Only add to categorized_items if it has a valid category (not 'uncategorized')
+        if category != 'uncategorized':
+            # Create item dict with all necessary fields (NO YOUTUBE_URL)
+            item_dict = {
+                'paksa': item.paksa,
+                'deskripsyon': item.deskripsyon or '',
+                'ano_ang_nagagawa_nito': item.ano_ang_nagagawa_nito or '',
+                'bakit_at_saan_ito_nangyayari': item.bakit_at_saan_ito_nangyayari or '',
+                'paano_ito_matutukoy': item.paano_ito_matutukoy or '',
+                'bakit_ito_mahalaga': item.bakit_ito_mahalaga or '',
+                'paano_ito_pangangasiwaan': item.paano_ito_pangangasiwaan or '',
+                'created_at': item.created_at,
+                'type': 'pest' if is_pest else 'disease',
+                'category': category
+            }
+            categorized_items.append(item_dict)
+    
+    # Update total items count based on categorized items only
+    total_items = len(categorized_items)
+    
+    context = {
+        'library_items': categorized_items,  # Only categorized items
+        'total_items': total_items,
+        'disease_count': disease_count,
+        'pest_count': pest_count,
+    }
+    
+    return render(request, 'farmer/farmer_library.html', context)
 
+def get_library(request, paksa):
+    try:
+        # Get library item from database - use case-insensitive search
+        library_item = get_object_or_404(Library, paksa__iexact=paksa)
+        
+        # Determine type and category (similar logic as above)
+        paksa_lower = library_item.paksa.lower()
+        desc_lower = (library_item.deskripsyon or '').lower()
+        
+        pest_keywords = ['peste', 'insekt', 'uod', 'bug', 'snail', 'caterpillar', 'borer', 'hopper', 'fly', 'weevil', 'midge', 'roller', 'maya', 'munia', 'hispa', 'beetle']
+        is_pest = any(keyword in paksa_lower or keyword in desc_lower for keyword in pest_keywords)
+        
+        category = 'uncategorized'
+        grain_keywords = ['grain', 'butil', 'dead heart', 'false smut', 'discoloration']
+        leaf_keywords = ['leaf', 'dahon', 'bakanae', 'stunt', 'stripes', 'tungro', 'scald', 'spot', 'blast', 'blight']
+        stem_keywords = ['stem', 'tangkay', 'rot', 'blight', 'rust']
+        
+        if any(keyword in paksa_lower or keyword in desc_lower for keyword in grain_keywords):
+            category = 'grain'
+        elif any(keyword in paksa_lower or keyword in desc_lower for keyword in leaf_keywords):
+            category = 'leaf'
+        elif any(keyword in paksa_lower or keyword in desc_lower for keyword in stem_keywords):
+            category = 'stem'
+        elif is_pest:
+            category = 'pest'
+        
+        data = {
+            'paksa': library_item.paksa,
+            'deskripsyon': library_item.deskripsyon or '',
+            'ano_ang_nagagawa_nito': library_item.ano_ang_nagagawa_nito or '',
+            'bakit_at_saan_ito_nangyayari': library_item.bakit_at_saan_ito_nangyayari or '',
+            'paano_ito_matutukoy': library_item.paano_ito_matutukoy or '',
+            'bakit_ito_mahalaga': library_item.bakit_ito_mahalaga or '',
+            'paano_ito_pangangasiwaan': library_item.paano_ito_pangangasiwaan or '',
+            'type': 'pest' if is_pest else 'disease',
+            'category': category,
+            'created_at': library_item.created_at.strftime('%Y-%m-%d'),
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=404)
+    
 from .models import Library
 def get_library_details(request, paksa):
     try:
@@ -3814,32 +3969,44 @@ def view_farmer_post(request, post_id):
     """
     View individual farmer post with all comments
     """
+    # Check authentication
     if not (request.session.get("user_id") and request.session.get("role") == "Magsasaka"):
         return redirect("login")
     
-    post = get_object_or_404(FarmerPost, id=post_id)
-    current_user_id = request.session["user_id"]
-    current_farmer = Farmer.objects.get(id=current_user_id)
-    
-    # Check if user has upvoted
-    user_has_upvoted = FarmerUpvote.objects.filter(
-        post=post, farmer=current_farmer
-    ).exists()
-    
-    # Get all comments
-    comments = post.get_comments()
-    
-    # Get solution comment if exists
-    solution_comment = comments.filter(is_solution=True).first()
-    
-    context = {
-        'post': post,
-        'comments': comments,
-        'solution_comment': solution_comment,
-        'user_has_upvoted': user_has_upvoted,
-    }
-    
-    return render(request, 'farmer/viewedit/view_farmer_post.html', context)
+    try:
+        # Get the post
+        post = get_object_or_404(FarmerPost, id=post_id)
+        
+        # Get current farmer
+        current_user_id = request.session["user_id"]
+        current_farmer = Farmer.objects.get(id=current_user_id)
+        
+        # Check if user has upvoted
+        user_has_upvoted = FarmerUpvote.objects.filter(
+            post=post, farmer=current_farmer
+        ).exists()
+        
+        # Get all comments ordered by date
+        comments = post.get_comments().order_by('-created_at')
+        
+        # Get solution comment if exists
+        solution_comment = comments.filter(is_solution=True).first()
+        
+        context = {
+            'post': post,
+            'comments': comments,
+            'solution_comment': solution_comment,
+            'user_has_upvoted': user_has_upvoted,
+            'current_farmer': current_farmer,
+        }
+        
+        return render(request, 'farmer/viewedit/view_farmer_post.html', context)
+        
+    except Farmer.DoesNotExist:
+        return HttpResponse("❌ Farmer not found.", status=404)
+    except Exception as e:
+        print(f"Error in view_farmer_post: {e}")
+        return HttpResponse("❌ An error occurred.", status=500)
 
 
 @require_POST
@@ -4049,6 +4216,7 @@ def message_expert(request, expert_id):
             existing_messages = False
 
     except Exception as e:
+        print(f"Error in message_expert: {e}")
         expert = None
         existing_messages = False
 
@@ -4166,9 +4334,70 @@ def chat_detail(request, expert_id):
     messages.filter(receiver_farmer=farmer, is_read=False).update(is_read=True)
 
     return render(request, "farmer/viewedit/chat_detail.html", {"messages": messages, "expert": expert})
-
 def farmer_profile(request):
-    return render(request, 'farmer/farmer_profile.html')
+    if 'user_id' not in request.session or request.session.get('role') != 'Magsasaka':
+        messages.error(request, "Kailangan mong mag-login bilang Farmer.")
+        return redirect('login')
+
+    farmer = Farmer.objects.get(id=request.session['user_id'])
+
+    farmer_stats = {
+        'posts': farmer.farmerpost_set.count(),
+        'predictions': farmer.predictionhistory_set.count(),
+        'messages': farmer.sent_messages_farmer.count()
+    }
+
+    if request.method == "POST":
+        action = request.POST.get('action')
+
+        # PASSWORD CHECK
+        if action == "verify_password":
+            if not check_password(request.POST.get('current_password'), farmer.password):
+                messages.error(request, "Maling password.")
+                return render(request, 'farmer/farmer_profile.html', {
+                    'farmer': farmer,
+                    'farmer_stats': farmer_stats,
+                    'show_password_form': True,
+                    'password_verified': False
+                })
+
+            return render(request, 'farmer/farmer_profile.html', {
+                'farmer': farmer,
+                'farmer_stats': farmer_stats,
+                'show_password_form': False,
+                'password_verified': True
+            })
+
+        # UPDATE PROFILE
+        elif action == "update_profile":
+
+            farmer.first_name = request.POST.get('first_name')
+            farmer.middle_name = request.POST.get('middle_name')
+            farmer.last_name = request.POST.get('last_name')
+            farmer.email = request.POST.get('email')
+            farmer.phone_number = request.POST.get('phone_number')
+            farmer.barangay = request.POST.get('barangay')
+            farmer.farm_size = request.POST.get('farm_size')
+
+            if request.POST.get('new_password'):
+                farmer.password = make_password(request.POST.get('new_password'))
+
+            if 'profile_picture' in request.FILES:
+                farmer.profile_picture = upload_to_supabase(
+                    request.FILES['profile_picture'], "profile_pictures"
+                )
+
+            farmer.save()
+            messages.success(request, "Profile updated successfully.")
+            return redirect('farmer_profile')
+
+    return render(request, 'farmer/farmer_profile.html', {
+        'farmer': farmer,
+        'farmer_stats': farmer_stats,
+        'show_password_form': True,
+        'password_verified': False
+    })
+
 # password reseta
 # class PasswordResetRequestView(View):
 #     def get(self, request):
@@ -4851,10 +5080,92 @@ def admin_remove_farmer_post(request, post_id):
     return redirect('admin_farmers')
 
 def admin_library(request):
-    """
-    Display the admin library page
-    """
-    return render(request, 'adminako/admin_library.html')
+    # Get all library items
+    library_items = Library.objects.all().order_by('paksa')
+    
+    # Calculate statistics
+    total_items = library_items.count()
+    
+    # Categorization logic (SAME AS farmer_library)
+    disease_keywords = ['sakit', 'virus', 'fungal', 'bacterial', 'infection', 'disease', 'rot', 'blight', 'blast', 'scald', 'spot']
+    pest_keywords = ['peste', 'insekt', 'uod', 'bug', 'snail', 'caterpillar', 'borer', 'hopper', 'fly', 'weevil', 'midge', 'roller', 'maya', 'munia', 'hispa', 'beetle']
+    
+    disease_count = 0
+    pest_count = 0
+    
+    # Process and categorize items - FILTER OUT UNCATEGORIZED
+    categorized_items = []
+    for item in library_items:
+        paksa_lower = item.paksa.lower()
+        desc_lower = (item.deskripsyon or '').lower()
+        
+        # Determine if it's a pest
+        is_pest = any(keyword in paksa_lower or keyword in desc_lower for keyword in pest_keywords)
+        
+        # Determine category based on keywords
+        category = 'uncategorized'
+        
+        # Check for grain/butil keywords
+        grain_keywords = ['grain', 'butil', 'dead heart', 'false smut', 'discoloration']
+        if any(keyword in paksa_lower or keyword in desc_lower for keyword in grain_keywords):
+            category = 'grain'
+        
+        # Check for leaf/dahon keywords
+        leaf_keywords = ['leaf', 'dahon', 'bakanae', 'stunt', 'stripes', 'tungro', 'scald', 'spot', 'blast', 'blight', 'blast']
+        if any(keyword in paksa_lower or keyword in desc_lower for keyword in leaf_keywords):
+            category = 'leaf'
+        
+        # Check for stem/tangkay keywords  
+        stem_keywords = ['stem', 'tangkay', 'rot', 'blight', 'rust']
+        if any(keyword in paksa_lower or keyword in desc_lower for keyword in stem_keywords):
+            category = 'stem'
+        
+        # Check for pest keywords
+        if is_pest:
+            category = 'pest'
+            pest_count += 1
+        else:
+            disease_count += 1
+        
+        # If still uncategorized, try to guess from title
+        if category == 'uncategorized':
+            if 'leaf' in paksa_lower or 'dahon' in paksa_lower:
+                category = 'leaf'
+            elif 'stem' in paksa_lower or 'tangkay' in paksa_lower:
+                category = 'stem'
+            elif 'grain' in paksa_lower or 'butil' in paksa_lower:
+                category = 'grain'
+            elif any(pest_word in paksa_lower for pest_word in ['pest', 'bug', 'insect', 'worm', 'borer', 'hopper']):
+                category = 'pest'
+        
+        # Only add to categorized_items if it has a valid category (not 'uncategorized')
+        if category != 'uncategorized':
+            # Create item dict with all necessary fields (NO YOUTUBE_URL)
+            item_dict = {
+                'paksa': item.paksa,
+                'deskripsyon': item.deskripsyon or '',
+                'ano_ang_nagagawa_nito': item.ano_ang_nagagawa_nito or '',
+                'bakit_at_saan_ito_nangyayari': item.bakit_at_saan_ito_nangyayari or '',
+                'paano_ito_matutukoy': item.paano_ito_matutukoy or '',
+                'bakit_ito_mahalaga': item.bakit_ito_mahalaga or '',
+                'paano_ito_pangangasiwaan': item.paano_ito_pangangasiwaan or '',
+                'created_at': item.created_at,
+                'type': 'pest' if is_pest else 'disease',
+                'category': category
+            }
+            categorized_items.append(item_dict)
+    
+    # Update total items count based on categorized items only
+    total_items = len(categorized_items)
+    
+    context = {
+        'library_items': categorized_items,  # Only categorized items
+        'total_items': total_items,
+        'disease_count': disease_count,
+        'pest_count': pest_count,
+    }
+    
+    return render(request, 'adminako/admin_library.html', context)
 
 # Additional helper views
 
@@ -6180,10 +6491,96 @@ from django.db.models import Q, Count, F
 def expert_scan(request):
     # Add logic for scanning functionality
     return render(request, "expert/expert_scan.html")
-
 def expert_library(request):
-    # Add logic for displaying library resources
-    return render(request, "expert/expert_library.html")
+    # Get all library items
+    library_items = Library.objects.all().order_by('paksa')
+    
+    # Calculate statistics
+    total_items = library_items.count()
+    
+    # Categorization logic (SAME AS farmer_library)
+    disease_keywords = ['sakit', 'virus', 'fungal', 'bacterial', 'infection', 'disease', 'rot', 'blight', 'blast', 'scald', 'spot']
+    pest_keywords = ['peste', 'insekt', 'uod', 'bug', 'snail', 'caterpillar', 'borer', 'hopper', 'fly', 'weevil', 'midge', 'roller', 'maya', 'munia', 'hispa', 'beetle']
+    
+    disease_count = 0
+    pest_count = 0
+    
+    # Process and categorize items - FILTER OUT UNCATEGORIZED
+    categorized_items = []
+    for item in library_items:
+        paksa_lower = item.paksa.lower()
+        desc_lower = (item.deskripsyon or '').lower()
+        
+        # Determine if it's a pest
+        is_pest = any(keyword in paksa_lower or keyword in desc_lower for keyword in pest_keywords)
+        
+        # Determine category based on keywords
+        category = 'uncategorized'
+        
+        # Check for grain/butil keywords
+        grain_keywords = ['grain', 'butil', 'dead heart', 'false smut', 'discoloration']
+        if any(keyword in paksa_lower or keyword in desc_lower for keyword in grain_keywords):
+            category = 'grain'
+        
+        # Check for leaf/dahon keywords
+        leaf_keywords = ['leaf', 'dahon', 'bakanae', 'stunt', 'stripes', 'tungro', 'scald', 'spot', 'blast', 'blight', 'blast']
+        if any(keyword in paksa_lower or keyword in desc_lower for keyword in leaf_keywords):
+            category = 'leaf'
+        
+        # Check for stem/tangkay keywords  
+        stem_keywords = ['stem', 'tangkay', 'rot', 'blight', 'rust']
+        if any(keyword in paksa_lower or keyword in desc_lower for keyword in stem_keywords):
+            category = 'stem'
+        
+        # Check for pest keywords
+        if is_pest:
+            category = 'pest'
+            pest_count += 1
+        else:
+            disease_count += 1
+        
+        # If still uncategorized, try to guess from title
+        if category == 'uncategorized':
+            if 'leaf' in paksa_lower or 'dahon' in paksa_lower:
+                category = 'leaf'
+            elif 'stem' in paksa_lower or 'tangkay' in paksa_lower:
+                category = 'stem'
+            elif 'grain' in paksa_lower or 'butil' in paksa_lower:
+                category = 'grain'
+            elif any(pest_word in paksa_lower for pest_word in ['pest', 'bug', 'insect', 'worm', 'borer', 'hopper']):
+                category = 'pest'
+        
+        # Only add to categorized_items if it has a valid category (not 'uncategorized')
+        if category != 'uncategorized':
+            # Create item dict with all necessary fields (NO YOUTUBE_URL)
+            item_dict = {
+                'paksa': item.paksa,
+                'deskripsyon': item.deskripsyon or '',
+                'ano_ang_nagagawa_nito': item.ano_ang_nagagawa_nito or '',
+                'bakit_at_saan_ito_nangyayari': item.bakit_at_saan_ito_nangyayari or '',
+                'paano_ito_matutukoy': item.paano_ito_matutukoy or '',
+                'bakit_ito_mahalaga': item.bakit_ito_mahalaga or '',
+                'paano_ito_pangangasiwaan': item.paano_ito_pangangasiwaan or '',
+                'created_at': item.created_at,
+                'type': 'pest' if is_pest else 'disease',
+                'category': category
+            }
+            categorized_items.append(item_dict)
+    
+    # Update total items count based on categorized items only
+    total_items = len(categorized_items)
+    
+    context = {
+        'library_items': categorized_items,  # Only categorized items
+        'total_items': total_items,
+        'disease_count': disease_count,
+        'pest_count': pest_count,
+    }
+    
+    return render(request, 'expert/expert_library.html', context)
+# def expert_library(request):
+#     # Add logic for displaying library resources
+#     return render(request, "expert/expert_library.html")
 
 # def expert_experts(request):
 #     # Perhaps this view lists other experts for collaboration or consultation
@@ -6445,10 +6842,10 @@ def expert_experts(request):
         # Apply search filter
         if search_query:
             expert_posts = expert_posts.filter(
-                models.Q(title__icontains=search_query) |
-                models.Q(caption__icontains=search_query) |
-                models.Q(expert__first_name__icontains=search_query) |
-                models.Q(expert__last_name__icontains=search_query)
+                Q(title__icontains=search_query) |
+                Q(caption__icontains=search_query) |
+                Q(expert__first_name__icontains=search_query) |
+                Q(expert__last_name__icontains=search_query)
             )
 
         # Apply solution filter
@@ -6470,11 +6867,11 @@ def expert_experts(request):
             expert_posts = expert_posts.order_by('created_at')
         elif post_sort == 'most_comments':
             expert_posts = expert_posts.annotate(
-                comment_count=models.Count('comment')
+                comment_count=Count('comment')
             ).order_by('-comment_count')
         elif post_sort == 'most_upvotes':
             expert_posts = expert_posts.annotate(
-                upvote_count=models.Count('upvote')
+                upvote_count=Count('upvote')
             ).order_by('-upvote_count')
         else:  # newest (default)
             expert_posts = expert_posts.order_by('-created_at')
@@ -6494,10 +6891,15 @@ def expert_experts(request):
             if solution_comment:
                 post.solution_comment = solution_comment
             else:
-                post.solution_comment = post.get_comments().order_by('-created_at').first()
+                post.solution_comment = None
 
+            # Get latest comments (excluding solution comment for display)
+            # Get up to 3 latest comments that are NOT solutions
+            all_comments = post.get_comments()
+            post.latest_comments = all_comments.filter(is_solution=False)[:3]
+            
             # Add engagement metrics for display
-            post.comment_count = post.get_comments().count()
+            post.comment_count = all_comments.count()
             post.upvote_count = post.get_upvotes_count()
 
     except Exception as e:
@@ -6523,6 +6925,75 @@ def expert_experts(request):
         }
     }
     return render(request, "expert/expert_experts.html", context)
+
+def mark_comment_as_solution(request, comment_id):
+    """Mark a comment as solution for expert posts (AJAX)"""
+    user_id = request.session.get("user_id")
+    role = request.session.get("role")
+
+    # Check if the user is logged in and is an expert
+    if not user_id or role != "Eksperto":
+        return JsonResponse({
+            'success': False,
+            'error': 'Kailangan mong mag-login bilang Eksperto upang gawin ito.'
+        })
+
+    try:
+        comment = Comment.objects.get(id=comment_id)
+        expert_user = Expert.objects.get(id=user_id)
+
+        # Ensure the comment is on a post authored by the logged-in expert
+        if comment.post.expert.id != expert_user.id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Hindi ka ang may-akda ng post na ito.'
+            })
+
+        # Toggle solution status
+        if comment.is_solution:
+            # Unmark solution
+            comment.is_solution = False
+            comment.solution_highlighted = False
+            comment.save()
+            message = "Hindi na minarkahan bilang solusyon ang komento."
+            is_solution = False
+        else:
+            # Unmark any existing solutions for the post
+            Comment.objects.filter(post=comment.post, is_solution=True).update(
+                is_solution=False, 
+                solution_highlighted=False
+            )
+            # Mark the selected comment as the solution
+            comment.is_solution = True
+            comment.solution_highlighted = True
+            comment.save()
+            message = "Minarkahan bilang solusyon ang komento!"
+            is_solution = True
+
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'is_solution': is_solution,
+            'comment_id': comment_id,
+            'post_id': comment.post.id
+        })
+
+    except Comment.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Hindi mahanap ang komento.'
+        })
+    except Expert.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Hindi mahanap ang eksperto.'
+        })
+    except Exception as e:
+        print(f"❌ Error marking comment as solution: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': f'Nagkaroon ng error: {str(e)}'
+        })
 # def expert_experts(request):
 #     try:
 #         user_id = request.session.get("user_id")
@@ -6648,6 +7119,11 @@ def view_post(request, post_id):
         
         # Check if user is owner (only for experts)
         is_owner = (expert_user == post.expert) if expert_user else False
+        
+        # Check if current user has upvoted
+        already_upvoted = False
+        if expert_user:
+            already_upvoted = Upvote.objects.filter(post=post, expert=expert_user).exists()
 
         images = post.get_images()
         comments = post.get_comments()
@@ -6658,7 +7134,7 @@ def view_post(request, post_id):
             'solution_comments': comments.filter(is_solution=True).count(),
             'expert_comments': comments.filter(expert__isnull=False).count(),
             'days_since_post': (timezone.now() - post.created_at).days,
-            'engagement_rate': min(100, comments.count() * 10),  # Simplified calculation
+            'engagement_rate': min(100, comments.count() * 10),
         }
 
         # Separate the solution comment
@@ -6676,6 +7152,7 @@ def view_post(request, post_id):
         "other_comments": other_comments,
         "post_analytics": post_analytics,
         "is_owner": is_owner,
+        "already_upvoted": already_upvoted,
         "user_role": user_role,
     }
 
@@ -6685,35 +7162,36 @@ def view_post(request, post_id):
     else:
         return render(request, "expert/viewedit/view_post.html", context)
     
+# DATING DEF
 from django.urls import reverse
-@csrf_exempt
-def mark_comment_as_solution(request, comment_id):
-    user_id = request.session.get("user_id")
-    role = request.session.get("role")
+# @csrf_exempt
+# def mark_comment_as_solution(request, comment_id):
+#     user_id = request.session.get("user_id")
+#     role = request.session.get("role")
 
-    # Check if the user is authorized (Eksperto role)
-    if not user_id or role != "Eksperto":
-        messages.error(request, "Hindi ka awtorisadong gawin ito.")
-        return redirect('some_error_page')  # Redirect to an error page or back to the post
+#     # Check if the user is authorized (Eksperto role)
+#     if not user_id or role != "Eksperto":
+#         messages.error(request, "Hindi ka awtorisadong gawin ito.")
+#         return redirect('some_error_page')  # Redirect to an error page or back to the post
 
-    comment = get_object_or_404(Comment, id=comment_id)
+#     comment = get_object_or_404(Comment, id=comment_id)
 
-    # Ensure the comment is on a post authored by the logged-in expert
-    if comment.post.expert.id != user_id:
-        messages.error(request, "Hindi ka ang may-akda ng post na ito.")
-        return redirect('some_error_page')  # Redirect to an error page or back to the post
+#     # Ensure the comment is on a post authored by the logged-in expert
+#     if comment.post.expert.id != user_id:
+#         messages.error(request, "Hindi ka ang may-akda ng post na ito.")
+#         return redirect('some_error_page')  # Redirect to an error page or back to the post
 
-    # Unmark any existing solutions for the post
-    Comment.objects.filter(post=comment.post, is_solution=True).update(is_solution=False, solution_highlighted=False)
+#     # Unmark any existing solutions for the post
+#     Comment.objects.filter(post=comment.post, is_solution=True).update(is_solution=False, solution_highlighted=False)
 
-    # Mark the selected comment as the solution
-    comment.mark_as_solution()
+#     # Mark the selected comment as the solution
+#     comment.mark_as_solution()
 
-    # Add a success message
-    messages.success(request, "Minarkahan bilang solusyon.")
+#     # Add a success message
+#     messages.success(request, "Minarkahan bilang solusyon.")
 
-    # Redirect back to the post view page (assuming `view_post` is the view name for post detail)
-    return redirect(reverse('view_post', kwargs={'post_id': comment.post.id}))
+#     # Redirect back to the post view page (assuming `view_post` is the view name for post detail)
+#     return redirect(reverse('view_post', kwargs={'post_id': comment.post.id}))
 
 
 
@@ -6752,27 +7230,129 @@ def upvote_post(request, post_id):
             "already_upvoted": True
         })
 
+@csrf_exempt  # Temporarily add this for debugging
 def comment_post(request, post_id):
+    """AJAX endpoint for commenting on expert posts"""
+    
+    # Check if it's an AJAX request
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
+    # Check authentication
     user_id = request.session.get("user_id")
     role = request.session.get("role")
-
+    
     if not user_id or role != "Eksperto":
-        messages.error(request, "You must be logged in as an expert to comment.")
-        return redirect('expert_experts')  # replace with your actual feed URL name
-
-    expert = get_object_or_404(Expert, id=user_id)
-    post = get_object_or_404(ExpertPost, id=post_id)
-
-    if request.method == "POST":
-        content = request.POST.get('content')
-
-        if not content:
-            messages.error(request, "Comment content cannot be empty.")
+        if is_ajax:
+            return JsonResponse({
+                'success': False,
+                'error': 'You must be logged in as an expert to comment.'
+            }, status=401)
         else:
-            Comment.objects.create(post=post, expert=expert, content=content)
-            messages.success(request, "Comment added successfully.")
+            messages.error(request, "You must be logged in as an expert to comment.")
+            return redirect('login')
+    
+    # Only accept POST requests
+    if request.method != "POST":
+        if is_ajax:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid request method.'
+            }, status=405)
+        else:
+            messages.error(request, "Invalid request method.")
+            return redirect('expert_experts')
+    
+    try:
+        # Get the expert and post
+        expert = Expert.objects.get(id=user_id)
+        post = ExpertPost.objects.get(id=post_id)
+        
+        # Parse the request body
+        try:
+            data = json.loads(request.body)
+            content = data.get('content', '').strip()
+        except json.JSONDecodeError:
+            # Try form data if JSON parsing fails
+            content = request.POST.get('content', '').strip()
+        
+        # Validate content
+        if not content:
+            return JsonResponse({
+                'success': False,
+                'error': 'Comment content cannot be empty.'
+            })
+        
+        if len(content) > 500:
+            return JsonResponse({
+                'success': False,
+                'error': 'Comment exceeds 500 character limit.'
+            })
+        
+        # Create the comment
+        comment = Comment.objects.create(
+            post=post, 
+            expert=expert, 
+            content=content
+        )
+        
+        # Prepare the response data
+        response_data = {
+            'success': True,
+            'message': 'Comment added successfully!',
+            'comment': {
+                'id': comment.id,
+                'content': comment.content,
+                'created_at': comment.created_at.strftime("%b %d, %Y %H:%M"),
+                'expert': {
+                    'id': comment.expert.id,
+                    'first_name': comment.expert.first_name,
+                    'last_name': comment.expert.last_name,
+                    'profile_picture': comment.expert.profile_picture or '',
+                    'position': comment.expert.position or 'Agricultural Expert'
+                },
+                'is_solution': comment.is_solution
+            }
+        }
+        
+        return JsonResponse(response_data)
+        
+    except Expert.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Expert not found.'
+        }, status=404)
+    except ExpertPost.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Post not found.'
+        }, status=404)
+    except Exception as e:
+        print(f"❌ Error adding comment: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        }, status=500)
+# def comment_post(request, post_id):
+#     user_id = request.session.get("user_id")
+#     role = request.session.get("role")
 
-    return redirect('expert_experts')  # or redirect to same post detail if you have one
+#     if not user_id or role != "Eksperto":
+#         messages.error(request, "You must be logged in as an expert to comment.")
+#         return redirect('expert_experts')  # replace with your actual feed URL name
+
+#     expert = get_object_or_404(Expert, id=user_id)
+#     post = get_object_or_404(ExpertPost, id=post_id)
+
+#     if request.method == "POST":
+#         content = request.POST.get('content')
+
+#         if not content:
+#             messages.error(request, "Comment content cannot be empty.")
+#         else:
+#             Comment.objects.create(post=post, expert=expert, content=content)
+#             messages.success(request, "Comment added successfully.")
+
+#     return redirect('expert_experts')  # or redirect to same post detail if you have one
     
 # def expert_experts(request):
 #     try:
@@ -7743,7 +8323,7 @@ from .models import FarmerPost, FarmerPostComment, FarmerPostImage, FarmerUpvote
 from .forms import FarmerPostForm
 
 def farmer_collaboration(request):
-    # Check if user is logged in and is an expert
+    # Check if user is logged in and is a farmer
     if request.session.get("user_id") and request.session.get("role") == "Magsasaka":
         farmer_id = request.session["user_id"]
         farmer = Farmer.objects.get(id=farmer_id)
@@ -7754,15 +8334,15 @@ def farmer_collaboration(request):
         return redirect("login")
 
 def create_farmer_post(request):
-    # Ensure user is an expert
+    # Ensure user is a farmer
     if request.session.get("role") != "Magsasaka":
-        return HttpResponse("⛔ Only approved experts can post.", status=403)
+        return HttpResponse("⛔ Only approved farmers can post.", status=403)
 
     try:
         farmer_id = request.session.get("user_id")
         farmer_profile = Farmer.objects.get(id=farmer_id)
     except Farmer.DoesNotExist:
-        return HttpResponse("❌ Expert not found.", status=404)
+        return HttpResponse("❌ Farmer not found.", status=404)
 
     if request.method == 'POST':
         form = FarmerPostForm(request.POST, request.FILES)
@@ -7773,7 +8353,7 @@ def create_farmer_post(request):
 
             images = request.FILES.getlist('images')
             for img in images:
-                # ✅ Upload each image to Supabase
+                # Upload each image to Supabase
                 image_url = upload_to_supabase(img, "farmer_posts")
                 if image_url:
                     FarmerPostImage.objects.create(
@@ -7788,6 +8368,72 @@ def create_farmer_post(request):
         form = FarmerPostForm()
 
     return render(request, 'farmer/viewedit/create_farmer_post.html', {'form': form})
+
+def edit_farmer_post(request, post_id):
+    if request.session.get("role") != "Magsasaka":
+        return HttpResponse("⛔ Only approved farmers can edit posts.", status=403)
+
+    post = get_object_or_404(FarmerPost, id=post_id)
+
+    if post.farmer.id != request.session.get("user_id"):
+        return HttpResponse("⛔ You are not authorized to edit this post.", status=403)
+
+    if request.method == 'POST':
+        form = FarmerPostForm(request.POST, request.FILES, instance=post)
+        if form.is_valid():
+            form.save()
+
+            # Handle deleted images (just like expert version)
+            deleted_ids = request.POST.getlist('deleted_images')
+            print(f"Deleted image IDs: {deleted_ids}")  # Debug log
+            for img_id in deleted_ids:
+                if img_id:  # Only process if not empty
+                    try:
+                        image = FarmerPostImage.objects.filter(id=img_id, post=post).first()
+                        if image:
+                            # Optional: Delete from Supabase storage if needed
+                            # delete_from_supabase(image.image_url)
+                            image.delete()
+                            print(f"Deleted image ID: {img_id}")
+                    except Exception as e:
+                        print(f"Error deleting image {img_id}: {e}")
+
+            # Upload newly added images (if any)
+            images = request.FILES.getlist('new_images')
+            for img in images:
+                image_url = upload_to_supabase(img, "farmer_posts")
+                if image_url:
+                    FarmerPostImage.objects.create(
+                        post=post,
+                        image_url=image_url
+                    )
+
+            return redirect('farmer_collaboration')
+        else:
+            print("Form errors:", form.errors)  # Debug log
+    else:
+        form = FarmerPostForm(instance=post)
+
+    return render(request, 'farmer/viewedit/edit_farmer_post.html', {'form': form, 'post': post})
+
+def delete_farmer_post(request, post_id):
+    if request.session.get("role") != "Magsasaka":
+        return redirect("login")
+    
+    try:
+        farmer_id = request.session.get("user_id")
+        post = FarmerPost.objects.get(id=post_id, farmer_id=farmer_id)
+        
+        # Delete associated images from Supabase first
+        for image in post.images.all():
+            # delete_from_supabase(image.image_url)  # Implement this function if needed
+            pass
+        
+        post.delete()
+        return redirect('farmer_collaboration')
+    except FarmerPost.DoesNotExist:
+        return HttpResponse("❌ Post not found or unauthorized.", status=404)
+    
 # views.py
 def create_expert_post(request):
     # Ensure user is an expert
@@ -7911,7 +8557,6 @@ def edit_farmer_post(request, post_id):
         form = ExpertPostForm(instance=post)
 
     return render(request, 'farmer/viewedit/edit_farmer_post.html', {'form': form, 'post': post})
-
 def edit_expert_post(request, post_id):
     if request.session.get("role") != "Eksperto":
         return HttpResponse("⛔ Only approved experts can edit posts.", status=403)
@@ -7928,10 +8573,18 @@ def edit_expert_post(request, post_id):
 
             # ✅ Handle deleted images
             deleted_ids = request.POST.getlist('deleted_images')
+            print(f"Deleted image IDs: {deleted_ids}")  # Debug log
             for img_id in deleted_ids:
-                image = ExpertPostImage.objects.filter(id=img_id, post=post).first()
-                if image:
-                    image.delete()
+                if img_id:  # Only process if not empty
+                    try:
+                        image = ExpertPostImage.objects.filter(id=img_id, post=post).first()
+                        if image:
+                            # Optional: Delete from Supabase storage if needed
+                            # delete_from_supabase(image.image_url)
+                            image.delete()
+                            print(f"Deleted image ID: {img_id}")
+                    except Exception as e:
+                        print(f"Error deleting image {img_id}: {e}")
 
             # ✅ Upload newly added images (if any)
             images = request.FILES.getlist('images')
@@ -7944,25 +8597,73 @@ def edit_expert_post(request, post_id):
                     )
 
             return redirect('expert_collaboration')
+        else:
+            print("Form errors:", form.errors)  # Debug log
     else:
         form = ExpertPostForm(instance=post)
 
     return render(request, 'expert/viewedit/edit_post.html', {'form': form, 'post': post})
 
+
+# def edit_expert_post(request, post_id):
+#     if request.session.get("role") != "Eksperto":
+#         return HttpResponse("⛔ Only approved experts can edit posts.", status=403)
+
+#     post = get_object_or_404(ExpertPost, id=post_id)
+
+#     if post.expert.id != request.session.get("user_id"):
+#         return HttpResponse("⛔ You are not authorized to edit this post.", status=403)
+
+#     if request.method == 'POST':
+#         form = ExpertPostForm(request.POST, request.FILES, instance=post)
+#         if form.is_valid():
+#             form.save()
+
+#             # ✅ Handle deleted images
+#             deleted_ids = request.POST.getlist('deleted_images')
+#             for img_id in deleted_ids:
+#                 image = ExpertPostImage.objects.filter(id=img_id, post=post).first()
+#                 if image:
+#                     image.delete()
+
+#             # ✅ Upload newly added images (if any)
+#             images = request.FILES.getlist('images')
+#             for img in images:
+#                 image_url = upload_to_supabase(img, "expert_posts")
+#                 if image_url:
+#                     ExpertPostImage.objects.create(
+#                         post=post,
+#                         image_url=image_url
+#                     )
+
+#             return redirect('expert_collaboration')
+#     else:
+#         form = ExpertPostForm(instance=post)
+
+#     return render(request, 'expert/viewedit/edit_post.html', {'form': form, 'post': post})
+
 from django.http import JsonResponse, HttpResponseNotAllowed
 from .models import ExpertPostImage
 
+@csrf_exempt
 def delete_expert_post_image(request, image_id):
     if request.method == 'DELETE':
-        # Get the image object
-        image = get_object_or_404(ExpertPostImage, id=image_id)
-        
-        # Delete the image from the database
-        image.delete()
-        
-        return JsonResponse({'message': 'Image deleted successfully.'}, status=200)
+        try:
+            # Get the image object
+            image = get_object_or_404(ExpertPostImage, id=image_id)
+            
+            # Verify the user owns the post
+            if request.session.get("user_id") != image.post.expert.id:
+                return JsonResponse({'error': 'Unauthorized'}, status=403)
+            
+            # Delete the image from the database
+            image.delete()
+            
+            return JsonResponse({'success': True, 'message': 'Image deleted successfully.'}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
     else:
-        return HttpResponseNotAllowed(['DELETE'])
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 # DISEASE USING VGG16 NI JUNREY
 # from django.conf import settings
